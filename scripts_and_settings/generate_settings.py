@@ -8,6 +8,11 @@ settings = {
                      'Lakes'                :    r'https://github.com/lukefullard/State_and_Trends_Reporting/blob/main/state_results/lakes_data_file.xlsx',
                      'Contact Recreation'   :    r'https://github.com/lukefullard/State_and_Trends_Reporting/blob/main/state_results/contactrec_data_file.xlsx',
                      },
+    'spatial_files' : {'District'                   :    r'https://github.com/lukefullard/State_and_Trends_Reporting/raw/main/scripts_and_settings/District_spatial_data.json',
+                     'Freshwater Management Unit'   :    r'https://github.com/lukefullard/State_and_Trends_Reporting/raw/main/scripts_and_settings/Freshwater%20Management%20Unit_spatial_data.json',
+                     'Water management Zone'        :    r'https://github.com/lukefullard/State_and_Trends_Reporting/raw/main/scripts_and_settings/Water%20management%20Zone_spatial_data.json',
+                     'Water management Subzone'     :    r'https://github.com/lukefullard/State_and_Trends_Reporting/raw/main/scripts_and_settings/Water%20management%20Zone_spatial_data.json',
+                     },
     #
     #geospatial
     'x_column'                 : 'NZTM.X',
