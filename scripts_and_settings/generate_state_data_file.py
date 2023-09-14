@@ -3,6 +3,7 @@
 script to prepare output data files from state analysis for uploading to public repo
 """
 import pandas as pd
+import geopandas as gpd
 import os
 import copy
 
@@ -26,6 +27,20 @@ def load_settings():
         'include_geospatial'       : True,
         'x_column'                 : 'NZTM.X',
         'y_column'                 : 'NZTM.Y',
+        'epsg_code'                : 2193,
+        'shapefiles'             : {'District'                   :{'location'     : r'SHAPEFILE LOCATION',
+                                                                    'column_name'  : 'TA2014_NAM'
+                                                                    },
+                                    'Freshwater Management Unit' :{'location'     : r'SHAPEFILE LOCATION',
+                                                                    'column_name' : 'Name'
+                                                                    },
+                                    'Water management Zone'      :{'location'     : r'SHAPEFILE LOCATION',
+                                                                    'column_name' : 'ManageZone'
+                                                                    },
+                                    'Water management Subzone'   :{'location'     : r'SHAPEFILE LOCATION',
+                                                                    'column_name' : 'Zone_Code'
+                                                                    },
+                                    },
         #
         'fix_NOF_Grade'            : True,
         'allowed_nof_grades'       : ['A','B','C','D','E'],
@@ -187,7 +202,12 @@ def load_data(data_file_location):
 ###############################################################################
 ###############################################################################
 ###############################################################################
-
+def get_site_location(gdf,reference_gdf,settings):
+    nearest_results = gpd.sjoin_nearest(gdf, reference_gdf.to_crs(settings.get('epsg_code')), 
+                                        distance_col='distance', max_distance=250,
+                                        how = 'left')
+    return nearest_results
+    
 
 ###############################################################################
 ###############################################################################
@@ -216,6 +236,22 @@ def main():
         if settings.get('include_geospatial'):
             columns_to_keep.append(settings.get('x_column'))
             columns_to_keep.append(settings.get('y_column'))
+            for region_j in settings.get('shapefiles').keys():
+                columns_to_keep.append(region_j)
+                data[region_j] = ''
+                data_copy = copy.deepcopy(data)
+                gdf = gpd.GeoDataFrame(
+                        data_copy, geometry=gpd.points_from_xy(data_copy[settings.get('x_column')], data_copy[settings.get('y_column')]), crs=f"EPSG:{settings.get('epsg_code')}"
+                    )
+                ref_gdf = gpd.read_file(settings.get('shapefiles').get(region_j).get('location'))
+                region_result = get_site_location(gdf,ref_gdf,settings)
+
+                if len(data) != len(region_result):
+                    raise ValueError('Length of dataframe not equal to geodataframe')
+                
+                data[region_j] = list(region_result[settings.get('shapefiles').get(region_j).get('column_name')])    
+
+                
         
         #add units
         if settings.get('include_units'):
