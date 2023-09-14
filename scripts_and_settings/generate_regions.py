@@ -29,7 +29,6 @@ def load_settings():
 
 def main():
     settings = load_settings()
-    data = {}
     for region_type_i in settings.get('shapefiles').keys():
         gdf = gpd.read_file(settings.get('shapefiles').get(region_type_i).get('location'))
         temp_data = {}
@@ -39,10 +38,9 @@ def main():
             else:
                 temp_data.update({name_i:geometry_i.wkt})
             
-        data.update({region_type_i:temp_data})    
     
-    with open('spatial_data.json', 'w') as fp:
-        json.dump(data, fp)    
+        with open(f'{region_type_i}_spatial_data.json', 'w') as fp:
+            json.dump(temp_data, fp)    
         
 
 
