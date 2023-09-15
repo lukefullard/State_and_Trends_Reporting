@@ -4,15 +4,18 @@ script to create json file for settings in web state application
 """
 import json
 settings = {
-    'pages'    :    {'Rivers'               :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/Rivers_data_file.xlsx',
-                     'Lakes'                :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/lakes_data_file.xlsx',
-                     'Contact Recreation'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/contactrec_data_file.xlsx',
+    'pages'    :    {'Rivers'               :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Rivers_sites.json',
+                     'Lakes'                :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Lakes_sites.json',
+                     'Contact_Recreation'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Contact_Recreation_sites.json',
                      },
     'spatial_files' : {'District'                   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/District_spatial_data.json',
                      'Freshwater Management Unit'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Freshwater%20Management%20Unit_spatial_data.json',
                      'Water management Zone'        :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Water%20management%20Zone_spatial_data.json',
                      'Water management Subzone'     :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Water%20management%20Subzone_spatial_data.json',
                      },
+    #
+    'state_data' :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/',
+    'raw_data'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/data/',
     #
     #geospatial
     'x_column'                 : 'NZTM.X',
@@ -27,6 +30,18 @@ settings = {
     #
     'add_nof_grade_background_colours'      :    True,
     'nof_grade_colours'         :    {
+                    "Very Good":"#2abeff",
+                    "Good"      :"#aed77a",
+                    "Fair"      :"#e6e600",
+                    "Poor"      :"#ff6767",
+                    "Very Poor" :"#ff6767",
+                    'A'         : "#2abeff",
+                    'B'         : "#aed77a",
+                    'C'         : "#e6e600",
+                    'D'         : "#ffa74d",
+                    'E'         : "#ff6767"
+                    },
+    'nof_grade_colourblind_colours'         :    {
                     "Very Good":"#2abeff",
                     "Good"      :"#aed77a",
                     "Fair"      :"#e6e600",

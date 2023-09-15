@@ -12,7 +12,7 @@ def load_settings():
         'data_files'               :  {
                         'Rivers'         : 'RIVER FILE LOCATION HERE',
                         'Lakes'           : 'LAKES FILE LOCATION HERE',
-                        'contactrec'      : 'CONTACT REC FILE LOCATION HERE',
+                        'Contact_Recreation'      : 'CONTACT REC FILE LOCATION HERE',
                         },
         #
         'save_folder'              : 'FOLDER TO SAVE FILE TO',

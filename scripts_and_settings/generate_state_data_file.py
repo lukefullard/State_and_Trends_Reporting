@@ -11,17 +11,12 @@ import json
 def load_settings():
     settings = {
         'data_files'               :  {
-                        # 'Rivers'                 : 'RIVER FILE LOCATION HERE',
-                        # 'Lakes'                  : 'LAKES FILE LOCATION HERE',
-                        # 'Contact_Recreation'     : 'CONTACT REC FILE LOCATION HERE',
-                        'Rivers'                 : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\Rivers\Rivers_State_Water_Years_2023-06-16.csv',
-                        'Lakes'                  : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\Lakes\Lakes_State_Water_Years_2023-09-15.csv',
-                        'Contact_Recreation'     : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\ContactRec\ContactRec_State_Water_Years_2023-06-15.csv',
-                        
+                        'Rivers'                 : 'RIVER FILE LOCATION HERE',
+                        'Lakes'                  : 'LAKES FILE LOCATION HERE',
+                        'Contact_Recreation'     : 'CONTACT REC FILE LOCATION HERE',
                         },
         #
-        # 'save_folder'              : 'FOLDER TO SAVE FILE TO',
-        'save_folder'              : r'\\ares\Science\Luke\State and Trends\reporting\State_and_Trends_Reporting\state_results',
+        'save_folder'              : 'FOLDER TO SAVE FILE TO',
         #
         #
         'remove_filter_fails'      : True,
@@ -35,16 +30,16 @@ def load_settings():
         'x_column'                 : 'NZTM.X',
         'y_column'                 : 'NZTM.Y',
         'epsg_code'                : 2193,
-        'shapefiles'             : {'District'                   :{'location'     : r'//ares/Hydrology GIS/External Data/District Boundaries/Districts.shp',
+        'shapefiles'             : {'District'                   :{'location'     : r'FILE LOCAION',
                                                                     'column_name'  : 'TA2014_NAM'
                                                                     },
-                                    'Freshwater Management Unit' :{'location'     : r'//gisdata/GIS/Department/Catchment Information/Projects/POLICY/2020/48584_mapping_for_report/data/FMU_20210122.shp',
+                                    'Freshwater Management Unit' :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'Name'
                                                                     },
-                                    'Water management Zone'      :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Zones.shp',
+                                    'Water management Zone'      :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'ManageZone'
                                                                     },
-                                    'Water management Subzone'   :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Subzones.shp',
+                                    'Water management Subzone'   :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'Zone_Code'
                                                                     },
                                     },
