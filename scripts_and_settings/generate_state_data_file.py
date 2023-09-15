@@ -6,16 +6,23 @@ import pandas as pd
 import geopandas as gpd
 import os
 import copy
+import json
 
 def load_settings():
     settings = {
         'data_files'               :  {
-                        'Rivers_data_file'         : 'RIVER FILE LOCATION HERE',
-                        'Lakes_data_file'          : 'LAKES FILE LOCATION HERE',
-                        'contactrec_data_file'     : 'CONTACT REC FILE LOCATION HERE',
+                        # 'Rivers'                 : 'RIVER FILE LOCATION HERE',
+                        # 'Lakes'                  : 'LAKES FILE LOCATION HERE',
+                        # 'Contact_Recreation'     : 'CONTACT REC FILE LOCATION HERE',
+                        'Rivers'                 : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\Rivers\Rivers_State_Water_Years_2023-06-16.csv',
+                        'Lakes'                  : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\Lakes\Lakes_State_Water_Years_2023-09-15.csv',
+                        'Contact_Recreation'     : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\ContactRec\ContactRec_State_Water_Years_2023-06-15.csv',
+                        
                         },
         #
-        'save_folder'              : 'FOLDER TO SAVE FILE TO',
+        # 'save_folder'              : 'FOLDER TO SAVE FILE TO',
+        'save_folder'              : r'\\ares\Science\Luke\State and Trends\reporting\State_and_Trends_Reporting\state_results',
+        #
         #
         'remove_filter_fails'      : True,
         'filter_column_name'       : 'FilterOK',
@@ -28,16 +35,16 @@ def load_settings():
         'x_column'                 : 'NZTM.X',
         'y_column'                 : 'NZTM.Y',
         'epsg_code'                : 2193,
-        'shapefiles'             : {'District'                   :{'location'     : r'FILE LOCATION',
+        'shapefiles'             : {'District'                   :{'location'     : r'//ares/Hydrology GIS/External Data/District Boundaries/Districts.shp',
                                                                     'column_name'  : 'TA2014_NAM'
                                                                     },
-                                    'Freshwater Management Unit' :{'location'     : r'FILE LOCATION',
+                                    'Freshwater Management Unit' :{'location'     : r'//gisdata/GIS/Department/Catchment Information/Projects/POLICY/2020/48584_mapping_for_report/data/FMU_20210122.shp',
                                                                     'column_name' : 'Name'
                                                                     },
-                                    'Water management Zone'      :{'location'     : r'FILE LOCATION',
+                                    'Water management Zone'      :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Zones.shp',
                                                                     'column_name' : 'ManageZone'
                                                                     },
-                                    'Water management Subzone'   :{'location'     : r'FILE LOCATION',
+                                    'Water management Subzone'   :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Subzones.shp',
                                                                     'column_name' : 'Zone_Code'
                                                                     },
                                     },
@@ -222,7 +229,38 @@ def get_site_location(gdf,reference_gdf,settings):
 ###############################################################################
 ###############################################################################
 ###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+def clean_text(text, add_hash = False):
+    '''
+    Convenience function to clean text by removing unicode characters (such as macrons) and non-alpha-numeric characters (spaces, punctuation, symbols etc)
 
+    Parameters
+    ----------
+    text : string
+        DESCRIPTION: String to clean
+        
+    add_hash : Boolean, optional
+        DESCRIPTION: The default is False. If True, adds an underscore + a hash to the text (to ensure uniqueness after cleaning).     
+
+    Returns
+    -------
+    cleaned_text : string
+        DESCRIPTION: cleaned string
+
+    '''
+    import unidecode
+    cleaned_text = unidecode.unidecode(text)
+    cleaned_text = ''.join(e for e in cleaned_text if e.isalnum())
+    
+    if add_hash:
+        import hashlib 
+        cleaned_text = cleaned_text + '_' + str(hashlib.shake_256(text.encode()).hexdigest(5))
+    return cleaned_text
+###############################################################################
+###############################################################################
+###############################################################################
 
 
 
@@ -295,6 +333,22 @@ def main():
         #save data 
         save_name = os.path.join(settings.get('save_folder'),file_j+'.xlsx')
         data.to_excel(save_name,index=False)
+        
+        #create site list
+        all_sites = list(data['site name'].unique())
+        with open(f'{file_j}_sites.json', 'w') as fp:
+            json.dump(all_sites, fp)
+        
+        #create new folder
+        new_folder = os.path.join(settings.get('save_folder'),file_j)
+        os.makedirs(new_folder, exist_ok=True)
+        for site_p in all_sites:
+            clean_site_name = clean_text(site_p, add_hash=True)
+            sub_data = data.loc[data['site name'] == site_p].reset_index(drop=True)
+            #save data
+            save_name = os.path.join(new_folder,clean_site_name + '.xlsx')
+            sub_data.to_excel(save_name,index=False)
+        
 
 ###############################################################################
 ###############################################################################
