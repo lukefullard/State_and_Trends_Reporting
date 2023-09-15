@@ -14,6 +14,7 @@ settings = {
                      'Water management Subzone'     :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Water%20management%20Subzone_spatial_data.json',
                      },
     #
+    'sidebar_image': r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/assets/SidebarTitle.png',
     'state_data' :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/',
     'raw_data'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/data/',
     #
