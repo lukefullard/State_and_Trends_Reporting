@@ -1,0 +1,22 @@
+body {
+	font-family: Garamond;
+}
+h1 {
+	font-family: Garamond;
+}
+
+
+
+section[data-testid="stSidebar"] > div {background: #243746;background-color: #243746;}
+
+
+section[data-testid="stSidebar"] > div > div > div > div:nth-child(1) > div > div:nth-child(3) > div > div {color:#FFFFFF}
+
+
+section[data-testid="stSidebar"] > div > div > div > div:nth-child(1) > div > div:nth-child(4) > div > div > center > a {color:#e6ffff}
+
+
+section[data-testid="stSidebar"] > div:nth-child(1) > div:nth-child(2) > ul {background: #CCD8E1;background-color: #CCD8E1;}
+
+
+section[data-testid="stSidebar"]  > div > div > ul {padding-top: 2rem; font-weight : 1000;}
