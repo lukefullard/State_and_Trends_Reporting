@@ -329,11 +329,21 @@ def main():
         save_name = os.path.join(settings.get('save_folder'),file_j+'.xlsx')
         data.to_excel(save_name,index=False)
         
+        
+        
+        sites_data = data[['site name'] + list(settings.get('shapefiles').keys())].drop_duplicates().reset_index(drop=True)
+        sites_dict = {}
+        for index_q,row_q in sites_data.iterrows():
+            new_dict = {}
+            for col_q in settings.get('shapefiles').keys():
+                new_dict.update({col_q:row_q[col_q]})
+            sites_dict.update({row_q['site name']:new_dict})
+        
+        with open(f'{file_j}_sites.json', 'w') as fp:
+            json.dump(sites_dict, fp)
+            
         #create site list
         all_sites = list(data['site name'].unique())
-        with open(f'{file_j}_sites.json', 'w') as fp:
-            json.dump(all_sites, fp)
-        
         #create new folder
         new_folder = os.path.join(settings.get('save_folder'),file_j)
         os.makedirs(new_folder, exist_ok=True)
