@@ -41,17 +41,17 @@ settings = {
                     'D'         : "#ffa74d",
                     'E'         : "#ff6767"
                     },
-    'nof_grade_colourblind_colours'         :    {
-                    "Very Good":"#2abeff",
-                    "Good"      :"#aed77a",
-                    "Fair"      :"#e6e600",
-                    "Poor"      :"#ff6767",
-                    "Very Poor" :"#ff6767",
-                    'A'         : "#2abeff",
-                    'B'         : "#aed77a",
-                    'C'         : "#e6e600",
-                    'D'         : "#ffa74d",
-                    'E'         : "#ff6767"
+    'nof_grade_colourblind_colours'         :    {    #http://mkweb.bcgsc.ca/colorblind/palettes.mhtml
+                    "Very Good":"#3DB7E9",
+                    "Good"      :"#359B73",
+                    "Fair"      :"#F0E442",
+                    "Poor"      :"#F748A5",
+                    "Very Poor" :"#F748A5",
+                    'A'         : "#3DB7E9",
+                    'B'         : "#359B73",
+                    'C'         : "#F0E442",
+                    'D'         : "#E69F00",
+                    'E'         : "#F748A5"
                     },
     #
     'nof_grade_baselines'       :    {
