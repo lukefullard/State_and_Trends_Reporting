@@ -20,21 +20,21 @@
 stlite.mount(
   {
     requirements: ["unidecode", "openpyxl", "plotly"],
-    entrypoint: "streamlit_app.py",
+    entrypoint: "Home.py",
     files: {
-"streamlit_app.py": `import streamlit as st
+"Home.py": `import streamlit as st
 import json
 import pyodide.http
 from PIL import Image
 from io import BytesIO
 
 ############################################ 
-from functions import load_url, load_settings, load_page_setup, load_sidebar_image, load_colourblind_checkbox     
+from functions import load_url, load_settings, load_page_setup, load_sidebar_image, load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox
 ############################################
 def initialise_session_state():    
     state_variables = ['current_page', 'settings',
     'current_page','current_site','current_site_data',
-    'sidebar_image',
+    'sidebar_image','plot_mode','data_table_mode',
     'filtered_sites','site_user_choice',
     'colourblind_mode','colourblind_colours']
     for variable_i in state_variables:
@@ -57,6 +57,10 @@ if not st.session_state['settings']:
 
 #load colourblind checkbox
 load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
 
 #text
 st.title('Welcome to State View')
@@ -76,6 +80,7 @@ Any use of the material supplied, for example, by inclusion in a report or a med
 Your acceptance of the enclosed material and/or services signifies your acceptance of these terms and conditions.
 ''')
 
+
 ############################################
 
 `,
@@ -88,7 +93,7 @@ import pandas as pd
 from plotting_functions import grade_time_plot 
 
 ############################################  
-from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox
 ############################################
 ###############################################################################
 ############################################
@@ -117,6 +122,10 @@ def choose_site_of_interest(site_list):
 st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
 #load colourblind checkbox
 load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
 
 #load site list
 if st.session_state['current_page'] != 'Rivers':
@@ -137,12 +146,12 @@ spatial_user_choice = choose_spatial_area()
 st.write('---')
 if spatial_user_choice == 'All sites':
     sub_spatial_user_choice = 'N/A'
-    st.session_state['filtered_sites'] = list(st.session_state['site_list'].keys())
+    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
 else:
     sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
     sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
     if sub_spatial_user_choice != 'Please select one':
-        st.session_state['filtered_sites'] = [x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice]
+        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
 
 # choose site of interest    
 if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
@@ -169,12 +178,19 @@ if st.session_state['site_user_choice'] not in [None,'Please select one']:
         st.session_state['current_site'] = st.session_state['site_user_choice']
         
 
+st.markdown("""
+        <style>
+                .stPlotlyChart {
+                    height: 90vh !important;
+                            }
+        </style>
+        """, unsafe_allow_html=True)
 
 #plot grade_time_plot
-if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None):
+if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
     st.subheader('Figures')
-    st.write('---')
-    c0,c1,c2 = st.columns([1,4,1])
+    st.write('**NOF grades over time**')
+    c0,c1,c2 = st.columns([1,8,1])
     c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
                     use_container_width = True)        
     st.write('---')
@@ -183,7 +199,7 @@ if (st.session_state['current_site'] == st.session_state['site_user_choice']) & 
 
 
 # show data
-if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None):
+if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['data_table_mode']):
     st.write('---') 
     st.subheader('Data table')
     st.dataframe(st.session_state['current_site_data'],
@@ -212,7 +228,21 @@ def load_colourblind_checkbox():
     else:
         st.session_state['colourblind_colours'] =  st.session_state['settings'].get('nof_grade_colours')
         st.session_state['colourblind_mode'] = False
-       
+
+def load_plotting_checkbox():
+    colourblind_check = st.sidebar.checkbox('Plot figures?',value = st.session_state['plot_mode'])
+    if colourblind_check:
+        st.session_state['plot_mode'] = True
+    else:
+        st.session_state['plot_mode'] = False
+
+def load_datatable_checkbox():
+    colourblind_check = st.sidebar.checkbox('Show data table?',value = st.session_state['data_table_mode'])
+    if colourblind_check:
+        st.session_state['data_table_mode'] = True
+    else:
+        st.session_state['data_table_mode'] = False        
+              
 ##########################################
 ##########################################
 ##########################################
@@ -300,6 +330,7 @@ def grade_time_plot(data,topic='Rivers'):
                   hover_data="NOF_Grade", text = "NOF_Grade",
                   color_discrete_map = st.session_state['colourblind_colours'],
                   category_orders={"NOF_Grade": list(st.session_state['colourblind_colours'].keys()),
+                  "year range": sorted(list(copydata['year range'].unique()))
                   },
                   title = f"{st.session_state['current_site']}",
                   )
@@ -315,11 +346,11 @@ def grade_time_plot(data,topic='Rivers'):
     final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
     fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
     
-    fig.update_layout(
-    autosize=False,
-    height=50+35*len(final_attributes),
+    #fig.update_layout(
+    #autosize=False,
+    #height=100+35*len(final_attributes),
     #width = 50 + 35*len(list(copydata['year range'].unique()))
-    )
+    #)
     return fig 
 `,
 
