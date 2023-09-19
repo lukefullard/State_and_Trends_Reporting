@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>stlite app</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.38.0/build/stlite.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.38.0/build/stlite.js"></script>
+    <script>
+stlite.mount(
+  {
+    requirements: ["unidecode", "openpyxl", "plotly"],
+    entrypoint: "streamlit_app.py",
+    files: {
+"streamlit_app.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+
+############################################ 
+from functions import load_url, load_settings, load_page_setup, load_sidebar_image, load_colourblind_checkbox     
+############################################
+def initialise_session_state():    
+    state_variables = ['current_page', 'settings',
+    'current_page','current_site','current_site_data',
+    'sidebar_image',
+    'filtered_sites','site_user_choice',
+    'colourblind_mode','colourblind_colours']
+    for variable_i in state_variables:
+        if variable_i not in st.session_state:
+            st.session_state[variable_i] = None
+############################################
+load_page_setup()
+
+#initialise session state
+initialise_session_state()
+
+#load sidebar    
+if not st.session_state['sidebar_image']:
+    await load_sidebar_image()
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))    
+
+#load settings
+if not st.session_state['settings']:
+    await load_settings() 
+
+#load colourblind checkbox
+load_colourblind_checkbox()
+
+#text
+st.title('Welcome to State View')
+st.write('To get started, choose a page on the sidebar.')
+st.write('---')
+st.title('DISCLAIMER')
+st.write('''
+The enclosed information is supplied, within the framework of our quality system, from the best data currently available.
+However, as we endeavour to continuously improve our products, we reserve the right to amend the data on which this information is based, where necessary and without notice, at any time. As a result, the information supplied to you now may not be the same as that subsequently produced for you or any other client.
+
+While Manawatū-Whanganui Regional Council has exercised all reasonable skill and care in controlling the contents of the information, you should independently check the information provided if the accuracy of that information is important to you.
+Under no circumstances will the Manawatū-Whanganui Regional Council or its employees or agents be liable in contract, tort or otherwise to compensate you for any loss, injury or damage (including loss of profits or consequential loss) arising directly or indirectly from the supply by the Council or its agents of inadequate, inaccurate or incorrect information.
+
+Manawatū-Whanganui Regional Council is the owner of the copyright subsisting in the enclosed material unless otherwise specified. Copies of the enclosed material, or any part thereof, by any means whatsoever shall be made only for use by you as the client for your own internal purposes and shall not be conveyed to any third party or merged into another machine readable database without the express permission of the Council.
+Any use of the material supplied, for example, by inclusion in a report or a media release, should be accompanied by an acknowledgment of the source of the data.
+
+Your acceptance of the enclosed material and/or services signifies your acceptance of these terms and conditions.
+''')
+
+############################################
+
+`,
+"pages/Rivers.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+import pandas as pd
+from plotting_functions import grade_time_plot 
+
+############################################  
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox
+############################################
+###############################################################################
+############################################
+def choose_spatial_area():
+    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
+    spatial_user_choice = st.radio('How would you like to select your sites? By: ',['All sites'] + spatial_area_names)
+    return spatial_user_choice
+############################################
+def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
+    sub_spatial_user_choice = st.selectbox(f'Please choose a {spatial_user_choice}: ',['Please select one'] + sub_spatial_areas)
+    return sub_spatial_user_choice    
+############################################
+def choose_site_of_interest(site_list):
+    site_user_choice = st.selectbox('Please choose a site: ',['Please select one'] + site_list)
+    return site_user_choice        
+############################################
+
+############################################
+############################################
+############################################
+############################################
+############################################
+############################################
+# main 
+#load sidebar image
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
+#load colourblind checkbox
+load_colourblind_checkbox()
+
+#load site list
+if st.session_state['current_page'] != 'Rivers':
+    url = st.session_state['settings'].get('pages').get('Rivers')
+    sites = await load_url(url,text=True)
+    st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
+    
+#update current page
+st.session_state['current_page'] = 'Rivers'
+
+#write intro message
+st.write('---')
+st.write("**Welcome** to the rivers state results.") 
+st.write('---')
+
+#choose spatial area
+spatial_user_choice = choose_spatial_area()
+st.write('---')
+if spatial_user_choice == 'All sites':
+    sub_spatial_user_choice = 'N/A'
+    st.session_state['filtered_sites'] = list(st.session_state['site_list'].keys())
+else:
+    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
+    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
+    if sub_spatial_user_choice != 'Please select one':
+        st.session_state['filtered_sites'] = [x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice]
+
+# choose site of interest    
+if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
+    st.session_state['site_user_choice']  =  choose_site_of_interest(st.session_state['filtered_sites']) 
+    st.write('---')  
+
+# display state and raw data link     
+if st.session_state['site_user_choice'] not in [None,'Please select one']:
+    st.subheader('Data downloads')
+    state_data_link,raw_data_link  =  get_data_links(topic = 'Rivers')
+    col1,col2 = st.columns(2)
+    with col1:
+        st.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
+    with col2:
+        st.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
+    st.write('---')    
+ 
+    #load site data
+    if st.session_state['current_site'] != st.session_state['site_user_choice']:
+        url = state_data_link
+        site_data_in_bytes = await load_url(url,text=False)
+        try:st.session_state['current_site_data'] = pd.read_csv(BytesIO(site_data_in_bytes))
+        except:st.session_state['current_site_data'] = pd.read_excel(BytesIO(site_data_in_bytes))
+        st.session_state['current_site'] = st.session_state['site_user_choice']
+        
+
+
+#plot grade_time_plot
+if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None):
+    st.subheader('Figures')
+    st.write('---')
+    c0,c1,c2 = st.columns([1,4,1])
+    c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
+                    use_container_width = True)        
+    st.write('---')
+
+
+
+
+# show data
+if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None):
+    st.write('---') 
+    st.subheader('Data table')
+    st.dataframe(st.session_state['current_site_data'],
+                hide_index=True)`,
+"functions.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+
+##########################################
+##########################################
+##########################################
+def load_page_setup():
+    #load the page config
+    st.set_page_config( 
+        page_title="State View",
+        layout="wide",
+        initial_sidebar_state="expanded"
+        ) 
+def load_colourblind_checkbox():
+    colourblind_check = st.sidebar.checkbox('Use colourblind mode',value = st.session_state['colourblind_mode'])
+    if colourblind_check:
+        st.session_state['colourblind_colours'] =  st.session_state['settings'].get('nof_grade_colourblind_colours')
+        st.session_state['colourblind_mode'] = True
+    else:
+        st.session_state['colourblind_colours'] =  st.session_state['settings'].get('nof_grade_colours')
+        st.session_state['colourblind_mode'] = False
+       
+##########################################
+##########################################
+##########################################
+async def load_url(url,text=True):
+    response = await pyodide.http.pyfetch(url)
+    if text:
+        data = await response.string()
+    else:
+        data = await response.bytes()
+    return data   
+##########################################
+##########################################
+##########################################    
+async def load_sidebar_image(): 
+    url = r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/assets/SidebarTitle.png'
+    sidebar_image = await load_url(url,text=False) 
+    st.session_state['sidebar_image'] = sidebar_image         
+##########################################
+##########################################
+##########################################
+async def load_settings(): 
+    url = r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/app_settings.json'
+    data = await load_url(url,text=True)
+    st.session_state['settings'] = json.loads(data)
+##########################################
+##########################################
+##########################################
+def clean_text(text, add_hash = False):
+    '''
+    Convenience function to clean text by removing unicode characters (such as macrons) and non-alpha-numeric characters (spaces, punctuation, symbols etc)
+
+    Parameters
+    ----------
+    text : string
+        DESCRIPTION: String to clean
+        
+    add_hash : Boolean, optional
+        DESCRIPTION: The default is False. If True, adds an underscore + a hash to the text (to ensure uniqueness after cleaning).     
+
+    Returns
+    -------
+    cleaned_text : string
+        DESCRIPTION: cleaned string
+
+    '''
+    import unidecode
+    cleaned_text = unidecode.unidecode(text)
+    cleaned_text = ''.join(e for e in cleaned_text if e.isalnum())
+    
+    if add_hash:
+        import hashlib 
+        cleaned_text = cleaned_text + '_' + str(hashlib.shake_256(text.encode()).hexdigest(5))
+    return cleaned_text
+
+##########################################
+##########################################
+##########################################
+def get_data_links(topic = 'Rivers'):
+    cleaned_site_name = clean_text(st.session_state['site_user_choice'], add_hash = True)
+    state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
+    raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'
+    return state_data_link,raw_data_link
+
+##########################################
+##########################################
+##########################################
+
+
+##########################################
+##########################################
+##########################################
+
+
+##########################################
+##########################################
+##########################################`,
+"plotting_functions.py": `import streamlit as st
+import copy
+
+def grade_time_plot(data,topic='Rivers'):
+    copydata = copy.deepcopy(data)
+    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    import plotly.express as px
+    fig = px.scatter(copydata, x='year range', y='attribute type', color="NOF_Grade",
+                  hover_data="NOF_Grade", text = "NOF_Grade",
+                  color_discrete_map = st.session_state['colourblind_colours'],
+                  category_orders={"NOF_Grade": list(st.session_state['colourblind_colours'].keys()),
+                  },
+                  title = f"{st.session_state['current_site']}",
+                  )
+    fig.update_traces(marker_size   =18, 
+                     marker_opacity = 0.7,
+                     marker_symbol  = 'square')  
+    fig.update_layout(yaxis_title='')
+    fig.update_layout(xaxis_title='')           
+    fig.update_layout(legend_title_text='')    
+    
+    
+    attributes = sorted(list(copydata['attribute type'].unique()))
+    final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
+    fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
+    
+    fig.update_layout(
+    autosize=False,
+    height=50+35*len(final_attributes),
+    #width = 50 + 35*len(list(copydata['year range'].unique()))
+    )
+    return fig 
+`,
+
+},
+  },
+  document.getElementById("root")
+)
+
+    </script>
+  </body>
+  <!-- Generated from stlite sharing (https://edit.share.stlite.net/), and the source version is e120c258c63c57bded488aac886be18f112ddeb7  # e120c258c63c57bded488aac886be18f112ddeb7 is available on GitHub Actions: https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables -->
+</html>
