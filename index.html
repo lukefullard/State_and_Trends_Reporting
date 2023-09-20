@@ -36,7 +36,9 @@ def initialise_session_state():
     'current_page','current_site','current_site_data',
     'sidebar_image','plot_mode','data_table_mode',
     'filtered_sites','site_user_choice',
-    'colourblind_mode','colourblind_colours']
+    'colourblind_mode','colourblind_colours',
+    'second_site','site2_user_choice','site2_data',
+    'reverse_2nd_axis']
     for variable_i in state_variables:
         if variable_i not in st.session_state:
             st.session_state[variable_i] = None
@@ -90,10 +92,10 @@ import pyodide.http
 from PIL import Image
 from io import BytesIO
 import pandas as pd
-from plotting_functions import grade_time_plot 
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites 
 
 ############################################  
-from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox
 ############################################
 ###############################################################################
 ############################################
@@ -110,7 +112,9 @@ def choose_site_of_interest(site_list):
     site_user_choice = st.selectbox('Please choose a site: ',['Please select one'] + site_list)
     return site_user_choice        
 ############################################
-
+def choose_coparison_site(site_list):
+    site2_user_choice = st.selectbox('Please choose a second site: ',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
+    return site2_user_choice 
 ############################################
 ############################################
 ############################################
@@ -189,10 +193,32 @@ st.markdown("""
 #plot grade_time_plot
 if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
     st.subheader('Figures')
-    st.write('**NOF grades over time**')
-    c0,c1,c2 = st.columns([1,8,1])
-    c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
-                    use_container_width = True)        
+    col0,col1 = st.columns(2)
+    col0.write('**NOF grades over time**')
+    with col1:
+        load_second_site_checkbox()
+
+    if st.session_state['second_site']:
+        with col1:
+            st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
+            if st.session_state['site2_user_choice'] != 'Please select one':
+                state2_data_link,_  =  get_data_links(topic = 'Rivers', site2 = True)
+                url = state2_data_link
+                site2_data_in_bytes = await load_url(url,text=False)
+                try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
+                except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
+        if st.session_state['site2_data'] is not None:
+            with col1:
+                load_reverse_second_axis_checkbox()
+            st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
+                        st.session_state['site2_data'],
+                        topic='Rivers'),
+                        use_container_width = True)    
+    
+    else:
+        c0,c1,c2 = st.columns([1,8,1])
+        c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
+                        use_container_width = True)        
     st.write('---')
 
 
@@ -241,7 +267,21 @@ def load_datatable_checkbox():
     if colourblind_check:
         st.session_state['data_table_mode'] = True
     else:
-        st.session_state['data_table_mode'] = False        
+        st.session_state['data_table_mode'] = False  
+
+def load_second_site_checkbox():
+    second_site = st.checkbox('Compare a second site?',value = st.session_state['second_site'])
+    if second_site:
+        st.session_state['second_site'] = True
+    else:
+        st.session_state['second_site'] = False   
+
+def load_reverse_second_axis_checkbox():
+    second_axis = st.checkbox('Reverse the second axis?',value = st.session_state['reverse_2nd_axis'])
+    if second_axis:
+        st.session_state['reverse_2nd_axis'] = True
+    else:
+        st.session_state['reverse_2nd_axis'] = False   
               
 ##########################################
 ##########################################
@@ -300,10 +340,15 @@ def clean_text(text, add_hash = False):
 ##########################################
 ##########################################
 ##########################################
-def get_data_links(topic = 'Rivers'):
-    cleaned_site_name = clean_text(st.session_state['site_user_choice'], add_hash = True)
-    state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
-    raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'
+def get_data_links(topic = 'Rivers', site2 = False):
+    if site2:
+        cleaned_site_name = clean_text(st.session_state['site2_user_choice'], add_hash = True)
+        state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
+        raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'    
+    else:
+        cleaned_site_name = clean_text(st.session_state['site_user_choice'], add_hash = True)
+        state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
+        raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'
     return state_data_link,raw_data_link
 
 ##########################################
@@ -321,8 +366,17 @@ def get_data_links(topic = 'Rivers'):
 ##########################################`,
 "plotting_functions.py": `import streamlit as st
 import copy
+import pandas as pd
+
+
 
 def grade_time_plot(data,topic='Rivers'):
+    year_list = sorted(list(data['year range'].unique()))
+    first_year = int(year_list[0][0:4])
+    last_year = int(year_list[-1][0:4])
+    final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
+    #st.write(final_year_list)
+
     copydata = copy.deepcopy(data)
     copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
     import plotly.express as px
@@ -330,7 +384,7 @@ def grade_time_plot(data,topic='Rivers'):
                   hover_data="NOF_Grade", text = "NOF_Grade",
                   color_discrete_map = st.session_state['colourblind_colours'],
                   category_orders={"NOF_Grade": list(st.session_state['colourblind_colours'].keys()),
-                  "year range": sorted(list(copydata['year range'].unique()))
+                  "year range": final_year_list
                   },
                   title = f"{st.session_state['current_site']}",
                   )
@@ -346,12 +400,65 @@ def grade_time_plot(data,topic='Rivers'):
     final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
     fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
     
+    fig.update_layout(plot_bgcolor="#ededed")
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
     #fig.update_layout(
     #autosize=False,
     #height=100+35*len(final_attributes),
     #width = 50 + 35*len(list(copydata['year range'].unique()))
     #)
     return fig 
+
+
+def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
+    
+    final_data = copy.deepcopy(data2)
+    final_data = pd.concat([final_data,data1],ignore_index = True).reset_index(drop=True)
+    year_list = sorted(list(final_data['year range'].unique()))
+    first_year = int(year_list[0][0:4])
+    last_year = int(year_list[-1][0:4])
+    final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
+    #st.write(final_year_list)
+
+    copydata = copy.deepcopy(final_data)
+    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    import plotly.express as px
+    fig = px.scatter(copydata, x='year range', y='attribute type', color="NOF_Grade",
+                  hover_data="NOF_Grade", text = "NOF_Grade",
+                  color_discrete_map = st.session_state['colourblind_colours'],
+                  category_orders={"NOF_Grade": list(st.session_state['colourblind_colours'].keys()),
+                  "year range": final_year_list,
+                  "site name": [st.session_state['site_user_choice'],st.session_state['site2_user_choice']]
+                  },
+                  #title = f"{st.session_state['current_site']}",
+                  facet_col="site name"
+                  )
+    if st.session_state['reverse_2nd_axis']:              
+        fig.update_xaxes(matches=None)    
+        fig.update_xaxes(categoryarray = list(reversed(final_year_list)),categoryorder = "array",col = 2)                  
+    
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))                  
+    fig.update_annotations(font=dict(size=16,color='black'))
+    fig.update_traces(marker_size   =18, 
+                     marker_opacity = 0.7,
+                     marker_symbol  = 'square')  
+    fig.update_layout(yaxis_title='')
+    fig.update_layout(xaxis_title='')           
+    fig.update_layout(legend_title_text='')    
+    
+    
+    attributes = sorted(list(copydata['attribute type'].unique()))
+    final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
+    fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
+    
+    fig.update_layout(plot_bgcolor="#ededed")
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+    #fig.update_layout(
+    #autosize=False,
+    #height=100+35*len(final_attributes),
+    #width = 50 + 35*len(list(copydata['year range'].unique()))
+    #)
+    return fig     
 `,
 
 },
