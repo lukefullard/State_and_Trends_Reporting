@@ -38,7 +38,7 @@ def initialise_session_state():
     'filtered_sites','site_user_choice',
     'colourblind_mode','colourblind_colours',
     'second_site','site2_user_choice','site2_data',
-    'reverse_2nd_axis']
+    'reverse_2nd_axis','log_check']
     for variable_i in state_variables:
         if variable_i not in st.session_state:
             st.session_state[variable_i] = None
@@ -92,10 +92,10 @@ import pyodide.http
 from PIL import Image
 from io import BytesIO
 import pandas as pd
-from plotting_functions import grade_time_plot, grade_time_plot_2_sites 
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites 
 
 ############################################  
-from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox
 ############################################
 ###############################################################################
 ############################################
@@ -115,6 +115,10 @@ def choose_site_of_interest(site_list):
 def choose_coparison_site(site_list):
     site2_user_choice = st.selectbox('Please choose a second site: ',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
     return site2_user_choice 
+############################################
+def choose_attribute(attribute_list,text = 'Please choose an attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice     
 ############################################
 ############################################
 ############################################
@@ -168,9 +172,11 @@ if st.session_state['site_user_choice'] not in [None,'Please select one']:
     state_data_link,raw_data_link  =  get_data_links(topic = 'Rivers')
     col1,col2 = st.columns(2)
     with col1:
-        st.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
+        place_holder_1 = st.empty()
+        place_holder_1.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
     with col2:
-        st.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
+        place_holder_2 = st.empty()
+        place_holder_2.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
     st.write('---')    
  
     #load site data
@@ -193,32 +199,79 @@ st.markdown("""
 #plot grade_time_plot
 if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
     st.subheader('Figures')
-    col0,col1 = st.columns(2)
-    col0.write('**NOF grades over time**')
-    with col1:
+    col_0,col_1 = st.columns(2)
+    col_0.write('**NOF grades over time**')
+    with col_1:
         load_second_site_checkbox()
 
     if st.session_state['second_site']:
-        with col1:
+        with col_1:
             st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
             if st.session_state['site2_user_choice'] != 'Please select one':
-                state2_data_link,_  =  get_data_links(topic = 'Rivers', site2 = True)
+                state2_data_link,raw2_data_link  =  get_data_links(topic = 'Rivers', site2 = True)
                 url = state2_data_link
                 site2_data_in_bytes = await load_url(url,text=False)
                 try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
                 except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
-        if st.session_state['site2_data'] is not None:
-            with col1:
+        if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+            place_holder_1.write(f'''
+|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|   
+
+|--Download **STATE** data for [**{st.session_state['site2_user_choice']}**]({state2_data_link})--|            
+            ''')
+            place_holder_2.write(f'''
+|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|   
+
+|--Download **RAW** data for [**{st.session_state['site2_user_choice']}**]({raw2_data_link})--|
+            ''')            
+            with col_1:
                 load_reverse_second_axis_checkbox()
             st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
                         st.session_state['site2_data'],
                         topic='Rivers'),
-                        use_container_width = True)    
+                        use_container_width = True)   
+        
+        
+        if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+            st.write('**NOF Grade scatterplot**')
+            user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site_user_choice"]}: ' )
+            user_attribute_site_2 = choose_attribute(sorted(list(st.session_state['site2_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site2_user_choice"]}: ' )
+            if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 in [None,"Please select one"]):       
+                load_log_checkbox()
+                st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                    user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
+                    use_container_width = True)  
+            if (user_attribute in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):       
+                load_log_checkbox()
+                st.plotly_chart(scatter_plot(st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                    user_attribute_site_2, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', sitename = st.session_state['site2_user_choice'], markersymbol = 'triangle-down'),
+                    use_container_width = True)                 
+            if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):   
+                load_log_checkbox()
+                st.plotly_chart(scatter_plot_2_sites(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True),st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                    user_attribute, user_attribute_site_2, 
+                    data_column0 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute), data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', 
+                    sitename0 = st.session_state['site_user_choice'], sitename1 = st.session_state['site2_user_choice']),
+                    use_container_width = True)          
+
     
     else:
         c0,c1,c2 = st.columns([1,8,1])
         c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
                         use_container_width = True)        
+        c0.write('---')
+        c1.write('---')
+        c2.write('---')
+
+
+        with c1:
+            st.write('**NOF Grade scatterplot**')
+            user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
+            if user_attribute not in [None,"Please select one"]:
+                load_log_checkbox()
+                st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                    user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
+                    use_container_width = True) 
     st.write('---')
 
 
@@ -282,6 +335,13 @@ def load_reverse_second_axis_checkbox():
         st.session_state['reverse_2nd_axis'] = True
     else:
         st.session_state['reverse_2nd_axis'] = False   
+
+def load_log_checkbox():
+    log_check = st.checkbox('Plot the y-axis on a log scale?',value = st.session_state['log_check'])
+    if log_check:
+        st.session_state['log_check'] = True
+    else:
+        st.session_state['log_check'] = False          
               
 ##########################################
 ##########################################
@@ -409,6 +469,14 @@ def grade_time_plot(data,topic='Rivers'):
     #)
     return fig 
 
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
 
 def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
     
@@ -418,7 +486,7 @@ def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
     first_year = int(year_list[0][0:4])
     last_year = int(year_list[-1][0:4])
     final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
-    #st.write(final_year_list)
+
 
     copydata = copy.deepcopy(final_data)
     copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
@@ -436,6 +504,7 @@ def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
     if st.session_state['reverse_2nd_axis']:              
         fig.update_xaxes(matches=None)    
         fig.update_xaxes(categoryarray = list(reversed(final_year_list)),categoryorder = "array",col = 2)                  
+
     
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))                  
     fig.update_annotations(font=dict(size=16,color='black'))
@@ -459,7 +528,168 @@ def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
     #width = 50 + 35*len(list(copydata['year range'].unique()))
     #)
     return fig     
-`,
+
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+
+
+def scatter_plot(data, attribute_name, data_column = 'Median',topic='Rivers', sitename = st.session_state['current_site'], markersymbol = 'triangle-up'):
+    year_list = sorted(list(data['year range'].unique()))
+    first_year = int(year_list[0][0:4])
+    last_year = int(year_list[-1][0:4])
+    final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
+
+    
+
+    copydata = copy.deepcopy(data)
+    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    if st.session_state['log_check']:
+        min_y = 0.975*min(copydata[data_column])
+    else:
+        min_y = 0
+    max_y = 1.025*max(copydata[data_column])
+    import plotly.express as px
+    fig = px.scatter(copydata, x='year range', y=data_column, 
+                  color="site name",
+                  hover_data="NOF_Grade", text = "NOF_Grade",
+                  title = sitename,
+                  color_discrete_map = {sitename: "black"},
+                  log_y = st.session_state['log_check'],
+                  range_y = [min_y,max_y],
+                  )
+    fig.update_traces(marker_size   =22, 
+                     marker_opacity = 0.7,
+                     marker_symbol  = markersymbol,
+                     textfont_color = 'white')  
+    fig.update_layout(yaxis_title=f"{attribute_name} ({st.session_state['settings'].get('nof_attribute_statistics').get(attribute_name)}, {st.session_state['settings'].get('nof_attribute_units').get(attribute_name)})")
+    fig.update_layout(xaxis_title='')           
+    fig.update_layout(legend_title_text='')    
+
+    fig.update_layout(plot_bgcolor="#ededed")
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+
+    #adding background colours
+    if (st.session_state['settings'].get('add_nof_grade_background_colours')) and (st.session_state['settings'].get('nof_band_definitions').get(topic).get(attribute_name)):
+        current_band_definitions = st.session_state['settings'].get('nof_band_definitions').get(topic).get(attribute_name)
+        for iter_j,label_j in  enumerate(current_band_definitions.get('labels')):
+            current_colour = st.session_state['colourblind_colours'].get(label_j)
+            y0 = current_band_definitions.get('bins')[iter_j]
+            y1 = min(current_band_definitions.get('bins')[iter_j+1], 1.025*max(copydata[data_column]))    
+            fig.add_hrect(y0=y0, y1=y1, line_width=0, fillcolor=current_colour, opacity=0.4)
+
+    #adding custom legend
+    import plotly.graph_objects as go
+    if not topic == "Contact Rec":
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="A",
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol='square'),),)
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="B",
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol='square'),),)                        
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="C",
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol='square'),),)
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="D",
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol='square'),),)                                                
+        if "E coli" in attribute_name:
+            fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="E",
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol='square'),),)
+
+                    
+    return fig 
+
+
+
+
+    ###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+
+
+def scatter_plot_2_sites(data0,data1, 
+        attribute_name0, attribute_name1, 
+        data_column0 = 'Median', data_column1 = 'Median',topic='Rivers', 
+        sitename0 = '', sitename1 = '', 
+        markersymbol0 = 'triangle-up', markersymbol1 = 'triangle-down'):
+    
+    data0['final_data_column'] = data0[data_column0]
+    data1['final_data_column'] = data1[data_column1]
+
+    final_data = copy.deepcopy(data0)
+    final_data = pd.concat([final_data,data1],ignore_index = True).reset_index(drop=True)
+    year_list = sorted(list(final_data['year range'].unique()))
+    first_year = int(year_list[0][0:4])
+    last_year = int(year_list[-1][0:4])
+    final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
+
+    copydata = copy.deepcopy(final_data)
+    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    if st.session_state['log_check']:
+        min_y = 0.975*min(copydata['final_data_column'])
+    else:
+        min_y = 0
+    max_y = 1.025*max(copydata['final_data_column'])
+    import plotly.express as px
+    fig = px.scatter(copydata, x='year range', y='final_data_column', 
+                  color="site name",
+                  hover_data="NOF_Grade", text = "NOF_Grade",
+                  symbol = "site name",
+                  title = f"{sitename0} ({attribute_name0}) -- and -- {sitename1} ({attribute_name1})",
+                  color_discrete_map = {sitename0: "black",sitename1: "black"},
+                  symbol_map = {sitename0: markersymbol0, sitename1: markersymbol1},
+                  log_y = st.session_state['log_check'],
+                  range_y = [min_y,max_y],
+                  )
+    fig.update_traces(marker_size   =22, 
+                     marker_opacity = 0.7,
+                     #marker_symbol  = markersymbol,
+                     textfont_color = 'white')  
+    if attribute_name0 == attribute_name1:                 
+        fig.update_layout(yaxis_title=f"{attribute_name0} ({st.session_state['settings'].get('nof_attribute_statistics').get(attribute_name0)}, {st.session_state['settings'].get('nof_attribute_units').get(attribute_name0)})")
+    else:
+        fig.update_layout(yaxis_title="")
+
+    fig.update_layout(xaxis_title='')           
+    fig.update_layout(legend_title_text='')    
+
+    fig.update_layout(plot_bgcolor="#ededed")
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+
+    #adding background colours
+    if attribute_name0 == attribute_name1:
+        if (st.session_state['settings'].get('add_nof_grade_background_colours')) and (st.session_state['settings'].get('nof_band_definitions').get(topic).get(attribute_name0)):
+            current_band_definitions = st.session_state['settings'].get('nof_band_definitions').get(topic).get(attribute_name0)
+            for iter_j,label_j in  enumerate(current_band_definitions.get('labels')):
+                current_colour = st.session_state['colourblind_colours'].get(label_j)
+                y0 = current_band_definitions.get('bins')[iter_j]
+                y1 = min(current_band_definitions.get('bins')[iter_j+1], 1.025*max(copydata['final_data_column']))    
+                fig.add_hrect(y0=y0, y1=y1, line_width=0, fillcolor=current_colour, opacity=0.4)
+
+        #adding custom legend
+        import plotly.graph_objects as go
+        if not topic == "Contact Rec":
+            fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="A",
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol='square'),),)
+            fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="B",
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol='square'),),)                        
+            fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="C",
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol='square'),),)
+            fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="D",
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol='square'),),)                                                
+            if "E coli" in attribute_name0:
+                fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="E",
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol='square'),),)
+
+                    
+    return fig `,
 
 },
   },
