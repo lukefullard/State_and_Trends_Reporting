@@ -163,6 +163,42 @@ settings = {
     },
     #
     #
+    'nof_attribute_units'  :    {
+                    'ASPM'                                         : '',
+                    'Cyanobacteria Biovolume (80th percentile)'    : 'mg chl-a /m3',
+                    'Chlorophyll A (92nd Percentile)'              : 'mg chl-a /m2',
+                    'Chlorophyll A (83rd Percentile)'              : 'mg chl-a /m2',
+                    'Chlorophyll A (Median)'                       : 'mg chl-a /m3',
+                    'Chlorophyll A (Annual Maximum)'               : 'mg chl-a /m3',
+                    'DRP (Median)'                                 : 'mg/L',
+                    'DRP (95th Percentile)'                        : 'mg/L',
+                    'E coli (>260)'                                : '% exceedances over 260/100 mL',
+                    'E coli (>540)'                                : '% exceedances over 540/100 mL',
+                    'E coli (Median)'                              : 'E. coli/100 mL',
+                    'E coli (95th Percentile)'                     : 'E. coli/100 mL',
+                    'E. coli (Primary Contact)'                    : 'E. coli/100 mL',
+                    'MCI'                                          : '',
+                    'Ammoniacal-N (95th Percentile)'               : 'mg NH4-N/L',
+                    'Ammoniacal-N (Median)'                        : 'mg NH4-N/L',
+                    'Nitrate-N (Median)'                           : 'mg NO3-N/L',
+                    'Nitrate-N (95th Percentile)'                  : 'mg NO3-N/L',
+                    'QMCI'                                         : '',
+                    'Visual Clarity (Sediment class 1)'            : 'm',
+                    'Visual Clarity (Sediment class 2)'            : 'm',
+                    'Visual Clarity (Sediment class 3)'            : 'm',
+                    'Visual Clarity (Sediment class 4)'            : 'm',
+                    'Soluble Inorganic Nitrogen (Median)'          : 'g/m3',
+                    'Soluble Inorganic Nitrogen (95th Percentile)' : 'g/m3',
+                    'Total Nitrogen (Median, stratified)'          : 'g/m3',
+                    'Total Nitrogen (Median, polymictic)'          : 'g/m3',
+                    'Total Nitrogen (Median)'                      : 'g/m3',
+                    'Total Nitrogen (95th Percentile)'             : 'g/m3',
+                    'Total Phosphorus (95th Percentile)'           : 'g/m3',
+                    'Total Phosphorus (Median)'                    : 'g/m3',
+                    'pH (Median)'                                  : '',
+    },
+    #
+    #
     'polymictic_lakes'          :    ['Lake Alice','Lake Alice (Composite)','Lake Heaton','Lake Heaton (Composite)','Lake Herbert','Lake Herbert (Composite)','Lake Horowhenua at Buoy','Lake Horowhenua Composite','Lake Koitiata','Lake Koitiata (Composite)','Lake Koputara','Lake Koputara (Composite)','Lake Poroa (Composite)','Lake Waipu','Lake Waipu (Composite)','Lake Westmere','Lake Westmere (Composite)','Lake William (Composite)','Lake William','Omanuka Lagoon','Omanuka Lagoon (Composite)','Pukepuke Lagoon','Pukepuke Lagoon (Composite)','Hokowhitu Lagoon at Walkbridge','Lake Papaitonga at Staff Gauge']
     }
 
