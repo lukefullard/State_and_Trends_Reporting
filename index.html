@@ -10,19 +10,19 @@
     <title>stlite app</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.38.0/build/stlite.css"
+      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.css"
     />
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.38.0/build/stlite.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.js"></script>
     <script>
 stlite.mount(
   {
     requirements: ["unidecode", "openpyxl", "plotly"],
-    entrypoint: "Home.py",
+    entrypoint: "streamlit_app.py",
     files: {
-"Home.py": `import streamlit as st
+"streamlit_app.py": `import streamlit as st
 import json
 import pyodide.http
 from PIL import Image
@@ -92,7 +92,7 @@ import pyodide.http
 from PIL import Image
 from io import BytesIO
 import pandas as pd
-from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites 
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites, scatter_plot_2variables 
 
 ############################################  
 from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox
@@ -117,6 +117,9 @@ def choose_coparison_site(site_list):
     return site2_user_choice 
 ############################################
 def choose_attribute(attribute_list,text = 'Please choose an attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice  
+def choose_attribute_2(attribute_list,text = 'If desired, please choose a second attribute to plot: '):
     attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
     return attribute_user_choice     
 ############################################
@@ -267,11 +270,20 @@ if (st.session_state['current_site'] == st.session_state['site_user_choice']) & 
         with c1:
             st.write('**NOF Grade scatterplot**')
             user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
-            if user_attribute not in [None,"Please select one"]:
+            user_attribute_2 = choose_attribute_2(sorted(list([x for x in st.session_state['current_site_data']['attribute type'].unique() if x != user_attribute])))
+            if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 in [None,"Please select one"]):
                 load_log_checkbox()
                 st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
                     user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
-                    use_container_width = True) 
+                    use_container_width = True)
+            if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 not in [None,"Please select one"]):
+                load_log_checkbox()
+                st.plotly_chart(scatter_plot_2variables(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'].isin([user_attribute,user_attribute_2])].reset_index(drop=True), 
+                    user_attribute,user_attribute_2, 
+                    data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),
+                    data_column2 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_2),
+                    topic='Rivers', sitename = st.session_state['site_user_choice']),
+                    use_container_width = True)         
     st.write('---')
 
 
@@ -601,7 +613,73 @@ def scatter_plot(data, attribute_name, data_column = 'Median',topic='Rivers', si
                     
     return fig 
 
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
 
+
+def scatter_plot_2variables(data, attribute_name1,attribute_name2, data_column1 = 'Median',data_column2 = 'Median',topic='Rivers', sitename = st.session_state['current_site'], markersymbol1 = 'triangle-up', markersymbol2 = 'triangle-down'):
+    year_list = sorted(list(data['year range'].unique()))
+    first_year = int(year_list[0][0:4])
+    last_year = int(year_list[-1][0:4])
+    final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
+
+    final_data_column = []
+    for iter_j,row_j in data.iterrows():
+        if row_j['attribute type'] == attribute_name1:
+            final_data_column.append(row_j[data_column1])
+        if row_j['attribute type'] == attribute_name2:
+            final_data_column.append(row_j[data_column2])    
+    data['final_data_column'] = final_data_column        
+    
+    
+
+    copydata = copy.deepcopy(data)
+    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    if st.session_state['log_check']:
+        min_y = 0.975*min(copydata['final_data_column'])
+    else:
+        min_y = 0
+    max_y = 1.025*max(copydata['final_data_column'])
+    import plotly.express as px
+    fig = px.scatter(copydata, x='year range', y='final_data_column', 
+                  color="attribute type",
+                  hover_data="NOF_Grade", text = "NOF_Grade",
+                  title = f"{sitename}: {attribute_name1} -- and -- {attribute_name2}",
+                  color_discrete_map = {attribute_name1: "black", attribute_name2 : 'mediumpurple'},
+                  log_y = st.session_state['log_check'],
+                  range_y = [min_y,max_y],
+                  symbol = "attribute type",
+                  symbol_map = {attribute_name1: markersymbol1, attribute_name2: markersymbol2},
+                  )
+    fig.update_traces(marker_size   =22, 
+                     marker_opacity = 0.7,
+                     textfont_color = 'white')  
+    fig.update_layout(yaxis_title='')
+    fig.update_layout(xaxis_title='')           
+    fig.update_layout(legend_title_text='')    
+
+    fig.update_layout(plot_bgcolor="#ededed")
+    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+                
+    return fig 
+
+
+
+
+    ###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
 
 
     ###########################################
@@ -631,7 +709,7 @@ def scatter_plot_2_sites(data0,data1,
     final_year_list = [f"{x} - {x+4}" for x in range(first_year,last_year+1)]
 
     copydata = copy.deepcopy(final_data)
-    copydata = copydata.sort_values(by = ['year range','attribute type'],ascending = True)
+    copydata = copydata.sort_values(by = ['year range'],ascending = True)
     if st.session_state['log_check']:
         min_y = 0.975*min(copydata['final_data_column'])
     else:
@@ -647,6 +725,9 @@ def scatter_plot_2_sites(data0,data1,
                   symbol_map = {sitename0: markersymbol0, sitename1: markersymbol1},
                   log_y = st.session_state['log_check'],
                   range_y = [min_y,max_y],
+                  category_orders={
+                  "year range": final_year_list,
+                  },
                   )
     fig.update_traces(marker_size   =22, 
                      marker_opacity = 0.7,
@@ -698,5 +779,5 @@ def scatter_plot_2_sites(data0,data1,
 
     </script>
   </body>
-  <!-- Generated from stlite sharing (https://edit.share.stlite.net/), and the source version is e120c258c63c57bded488aac886be18f112ddeb7  # e120c258c63c57bded488aac886be18f112ddeb7 is available on GitHub Actions: https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables -->
+  <!-- Generated from stlite sharing (https://edit.share.stlite.net/), and the source version is 82a4b24dc72ad76886dde43e3fbe47e24fb0eebe  # 82a4b24dc72ad76886dde43e3fbe47e24fb0eebe is available on GitHub Actions: https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables -->
 </html>
