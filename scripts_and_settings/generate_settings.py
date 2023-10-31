@@ -17,6 +17,7 @@ settings = {
     'sidebar_image': r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/assets/SidebarTitle.png',
     'state_data' :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/state_results/',
     'raw_data'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/data/',
+    'trend_data' :    r'',
     #
     #geospatial
     'x_column'                 : 'NZTM.X',
