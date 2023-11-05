@@ -30,29 +30,16 @@ def load_settings():
         'x_column'                 : 'NZTM.X',
         'y_column'                 : 'NZTM.Y',
         'epsg_code'                : 2193,
-        # 'shapefiles'             : {'District'                   :{'location'     : r'FILE LOCAION',
-        #                                                             'column_name'  : 'TA2014_NAM'
-        #                                                             },
-        #                             'Freshwater Management Unit' :{'location'     : r'FILE LOCAION',
-        #                                                             'column_name' : 'Name'
-        #                                                             },
-        #                             'Water management Zone'      :{'location'     : r'FILE LOCAION',
-        #                                                             'column_name' : 'ManageZone'
-        #                                                             },
-        #                             'Water management Subzone'   :{'location'     : r'FILE LOCAION',
-        #                                                             'column_name' : 'Zone_Code'
-        #                                                             },
-        #                             },
-        'shapefiles'             : {'District'                   :{'location'     : r'//ares/Hydrology GIS/External Data/District Boundaries/Districts.shp',
+        'shapefiles'             : {'District'                   :{'location'     : r'FILE LOCAION',
                                                                     'column_name'  : 'TA2014_NAM'
                                                                     },
-                                    'Freshwater Management Unit' :{'location'     : r'//gisdata/GIS/Department/Catchment Information/Projects/POLICY/2020/48584_mapping_for_report/data/FMU_20210122.shp',
+                                    'Freshwater Management Unit' :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'Name'
                                                                     },
-                                    'Water management Zone'      :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Zones.shp',
+                                    'Water management Zone'      :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'ManageZone'
                                                                     },
-                                    'Water management Subzone'   :{'location'     : r'//gisdata/GIS/Department/Policy/OnePlan/One_Plan/Operative_One_Plan/Shapefiles/Surface_Water/Water_Management_Subzones.shp',
+                                    'Water management Subzone'   :{'location'     : r'FILE LOCAION',
                                                                     'column_name' : 'Zone_Code'
                                                                     },
                                     },
@@ -305,8 +292,8 @@ def main():
                 new_dict.update({col_q:row_q[col_q]})
             sites_dict.update({row_q['site name']:new_dict})
         
-        with open(f'{file_j}_sites.json', 'w') as fp:
-            json.dump(sites_dict, fp)
+        # with open(f'{file_j}_sites.json', 'w') as fp:
+        #     json.dump(sites_dict, fp)
             
         #create site list
         all_sites = list(data['site name'].unique())
