@@ -4,6 +4,7 @@ script to create json file for settings in web state application
 """
 import json
 settings = {
+    'final_date':'01/07/2022', #this is the date to which the data goes up to.
     'pages'    :    {'Rivers'               :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Rivers_sites.json',
                      'Lakes'                :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Lakes_sites.json',
                      'Contact_Recreation'   :    r'https://raw.githubusercontent.com/lukefullard/State_and_Trends_Reporting/main/scripts_and_settings/Contact_Recreation_sites.json',
