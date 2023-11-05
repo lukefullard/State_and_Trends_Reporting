@@ -11,12 +11,12 @@ import json
 def load_settings():
     settings = {
         'data_files'               :  {
-                        'Rivers'                 : r'\\ares\Science\Luke\State and Trends\2023\OUTPUTS\Rivers\Trends\Rivers_Trend_allresults.csv',#'RIVER FILE LOCATION HERE',
+                        'Rivers'                 : 'RIVER FILE LOCATION HERE',
                         # 'Lakes'                  : 'LAKES FILE LOCATION HERE',
-                        # 'Contact_Recreation'     : 'CONTACT REC FILE LOCATION HERE',
+                        'Contact_Recreation'     : 'CONTACT REC FILE LOCATION HERE',
                         },
         #
-        'save_folder'              : r'\\ares\Science\Luke\State and Trends\reporting\State_and_Trends_Reporting\trend_results',#'FOLDER TO SAVE FILE TO',
+        'save_folder'              :'FOLDER TO SAVE FILE TO',
         #
         #
         'remove_filter_fails'      : False,
