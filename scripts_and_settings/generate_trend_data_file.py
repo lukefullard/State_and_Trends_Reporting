@@ -77,6 +77,7 @@ def load_settings():
             'ECOLI'     :'E. coli',
             'MCI'       :'MCI (Macroinvertebrate Community Index)',
             'NH4N_adj'  :'Ammoniacal Nitrogen (NH4)',
+            'NH4N'      :'Ammoniacal Nitrogen (NH4)',
             'NO2'       :'Nitrite Nitrogen (NO2)',
             'NO3'       :'Nitrate Nitrogen (NO3)',
             'pH'        :'pH',

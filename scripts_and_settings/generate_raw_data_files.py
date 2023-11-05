@@ -18,16 +18,37 @@ def load_settings():
         'save_folder'              : 'FOLDER TO SAVE FILE TO',
         #
 
-        'columns_to_keep'          : ['sID','npID','SampleDate','Value','Project','Method','Unit','QC','ph'],
+        'columns_to_keep'          : ['sID','attribute_column_name','SampleDate','Value','Project','Method','Unit','QC','ph'],
         'column_renaming_map'      : {
-                    'sID'          :'site name',
-                    'npID'         :'parameter name',
-                    'SampleDate'   :'date time',
-                    'QC'           :'Quality code',
-                    'ph'          :'pH',
+                    'sID'                  :'site name',
+                    'npID'                 :'parameter name',
+                    'attribute_column_name':'parameter name',
+                    'SampleDate'           :'date time',
+                    'QC'                   :'Quality code',
+                    'ph'                   :'pH',
                     },   
         #
-        'site_name_new_column_name':'site name'
+        'site_name_new_column_name':'site name',
+        'attribute_name_mapping'   : {
+            'ASPM'      :'ASPM (Macroinvertebrate Average Score Per Metric)',    
+            'CLAR'      :'Visual Clarity',
+            'Chl_a'     :'Chlorophyll A',
+            'DO_Conc'   :'Dissolved Oxygen Concentration',
+            'DRP'       :'Dissolved Reactive Phosphorus',
+            'ECOLI'     :'E. coli',
+            'MCI'       :'MCI (Macroinvertebrate Community Index)',
+            'NH4N_adj'  :'Ammoniacal Nitrogen (NH4)',
+            'NH4N'      :'Ammoniacal Nitrogen (NH4)',
+            'NO2'       :'Nitrite Nitrogen (NO2)',
+            'NO3'       :'Nitrate Nitrogen (NO3)',
+            'pH'        :'pH',
+            'QMCI'      :'QMCI (Quantitative Macroinvertebrate Community Index)',
+            'SIN'       :'SIN (Soluble Inorganic nitrogen)',
+            'SSC'       :'Suspended Sediment Concentration',
+            'TN'        :'Total Nitrogen',
+            'TP'        :'Total Phosphorus',
+            'TURB'      :'Turbidity',
+                        },
         }
     return settings
 
@@ -125,9 +146,22 @@ def main():
         #load data
         data = load_data(settings.get('data_files').get(file_j))
         
+        #rename attributes
+        new_attribute_name = []
+        for index_k,row_k in data.iterrows():
+            old_name = row_k['npID']
+            new_attribute_name.append(
+                settings.get('attribute_name_mapping').get(old_name,old_name)
+                )
+        data['attribute_column_name']  = new_attribute_name    
+        
+        
+        
         #columns to keep
         columns_to_keep_final = [x for x in settings.get('columns_to_keep') if x in data.columns]
         data = data[columns_to_keep_final]
+
+       
         
         #rename columns
         data = data.rename(columns=settings.get('column_renaming_map'))
