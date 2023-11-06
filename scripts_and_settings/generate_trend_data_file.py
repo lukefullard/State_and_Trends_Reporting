@@ -51,7 +51,7 @@ def load_settings():
                                       ],
         'column_renaming_map'        : {
                     'sID'                   :'site name',
-                    'npID'                  :'variable',
+                    'npID'                  :'parameter name',#
                     'Trend_Period'          :'trend period',
                     'Status'                :'site type',
                     'Seasonal_trend'        :'seasonal trend',

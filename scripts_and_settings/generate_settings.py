@@ -57,6 +57,29 @@ settings = {
                     'E'         : "#F748A5"
                     },
     #
+    'trend_colours'         :    {
+                  "Virtually certain improving"          : "#007030",
+                  "Extremely likely improving"           : "#548f40",
+                  "Very likely improving"                : "#8dae55",
+                  "Likely improving"                     : "#c6cc6f",
+                  "As likely as not improving"           : "#ffeb90",
+                  "Unlikely improving"                   : "#e8b56a",
+                  "Very unlikely improving"              : "#cc824f",
+                  "Extremely unlikely improving"         : "#a9523c",
+                  "Exceptionally unlikely improving"     : "#81222e",
+                  #
+                  "Virtually certain increasing"          : "#007030",
+                  "Extremely likely increasing"           : "#548f40",
+                  "Very likely increasing"                : "#8dae55",
+                  "Likely increasing"                     : "#c6cc6f",
+                  "As likely as not increasing"           : "#ffeb90",
+                  "Unlikely increasing"                   : "#e8b56a",
+                  "Very unlikely increasing"              : "#cc824f",
+                  "Extremely unlikely increasing"         : "#a9523c",
+                  "Exceptionally unlikely increasing"     : "#81222e",
+                  'Not Analysed'               : "rgb(220,220,220)",
+                    },
+    #
     'nof_grade_baselines'       :    {
             'ASPM'                                 :'D',
             'Chlorophyll A (92nd Percentile)'      :'D',
