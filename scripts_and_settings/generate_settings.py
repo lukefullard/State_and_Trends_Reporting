@@ -142,7 +142,7 @@ settings = {
         #
         #
         #
-        'Contact Recreation' : {
+        'Contact_Recreation' : {
                    'E coli (>260)'                                 : {'bins': [0,19.99999,29.99999,33.999999,49.999999,101], 'labels':['A','B','C','D','E']},
                    'E coli (>540)'                                 : {'bins': [0,4.999999,9.999999,19.999999,29.999999,101], 'labels':['A','B','C','D','E']},
                    'E coli (Median)'                               : {'bins': [0,130,260,100000000], 'labels':['A','D','E']},

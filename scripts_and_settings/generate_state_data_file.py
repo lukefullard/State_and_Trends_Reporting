@@ -45,7 +45,7 @@ def load_settings():
                                     },
         #
         'fix_NOF_Grade'            : True,
-        'allowed_nof_grades'       : ['A','B','C','D','E'],
+        'allowed_nof_grades'       : ['A','B','C','D','E','Very Good','Good','Fair','Poor','Very Poor'],
         'nof_column_name'          : 'NOF_Grade',
         #
         'columns_to_keep'          : ['sID','Attr','NOF_Grade','yearz','Status',
