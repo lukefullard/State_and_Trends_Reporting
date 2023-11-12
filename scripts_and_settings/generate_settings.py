@@ -228,14 +228,22 @@ settings = {
     #
     #
     'plot_settings'  :  {
-        'bgcolour'           :   '#ededed',
-        'showgrid'           :   True, 
-        'gridwidth'          :   2, 
-        'gridcolor'          :  'white',
-        'basic_marker_shape' : 'square',
-        'legend_marker_size' : 12,
-        'plot_marker_size'   : 12,
-        'figure_font_size'   : 12,
+        'bgcolour'                         :   '#ededed',
+        'showgrid'                         :   True, 
+        'gridwidth'                        :   2, 
+        'gridcolor'                        :  'white',
+        'basic_marker_shape'               : 'square',
+        'legend_marker_size'               : 12,
+        'plot_marker_size'                 : 12,
+        'grade_time_marker_size'           : 18,
+        'marker_opacity'                   : 0.7,
+        'figure_font_size'                 : 12,
+        'grade_time_font_size'             : 16,
+        'font_colour'                      : 'black',
+        'scatter_marker_size'              : 22,
+        'scatter_font_colour'              : 'white',
+        'time_series_marker_size'          :  15,
+        'trend_classification_marker_size' : 20
         
         
         
