@@ -224,7 +224,22 @@ settings = {
     },
     #
     #
-    'polymictic_lakes'          :    ['Lake Alice','Lake Alice (Composite)','Lake Heaton','Lake Heaton (Composite)','Lake Herbert','Lake Herbert (Composite)','Lake Horowhenua at Buoy','Lake Horowhenua Composite','Lake Koitiata','Lake Koitiata (Composite)','Lake Koputara','Lake Koputara (Composite)','Lake Poroa (Composite)','Lake Waipu','Lake Waipu (Composite)','Lake Westmere','Lake Westmere (Composite)','Lake William (Composite)','Lake William','Omanuka Lagoon','Omanuka Lagoon (Composite)','Pukepuke Lagoon','Pukepuke Lagoon (Composite)','Hokowhitu Lagoon at Walkbridge','Lake Papaitonga at Staff Gauge']
+    'polymictic_lakes'          :    ['Lake Alice','Lake Alice (Composite)','Lake Heaton','Lake Heaton (Composite)','Lake Herbert','Lake Herbert (Composite)','Lake Horowhenua at Buoy','Lake Horowhenua Composite','Lake Koitiata','Lake Koitiata (Composite)','Lake Koputara','Lake Koputara (Composite)','Lake Poroa (Composite)','Lake Waipu','Lake Waipu (Composite)','Lake Westmere','Lake Westmere (Composite)','Lake William (Composite)','Lake William','Omanuka Lagoon','Omanuka Lagoon (Composite)','Pukepuke Lagoon','Pukepuke Lagoon (Composite)','Hokowhitu Lagoon at Walkbridge','Lake Papaitonga at Staff Gauge'],
+    #
+    #
+    'plot_settings'  :  {
+        'bgcolour'           :   '#ededed',
+        'showgrid'           :   True, 
+        'gridwidth'          :   2, 
+        'gridcolor'          :  'white',
+        'basic_marker_shape' : 'square',
+        'legend_marker_size' : 12,
+        'plot_marker_size'   : 12,
+        'figure_font_size'   : 12,
+        
+        
+        
+        }
     }
 
 with open('app_settings.json', 'w') as fp:
