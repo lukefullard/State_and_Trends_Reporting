@@ -10,12 +10,12 @@
     <title>stlite app</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.css"
+      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.42.3/build/stlite.css"
     />
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.42.3/build/stlite.js"></script>
     <script>
 stlite.mount(
   {
@@ -33,15 +33,25 @@ from functions import load_url, load_settings, load_page_setup, load_sidebar_ima
 ############################################
 def initialise_session_state():    
     state_variables = ['current_page', 'settings',
-    'current_page','current_site','current_site_data',
-    'sidebar_image','plot_mode','data_table_mode',
+    'current_page','current_site','current_site_data', 'site_trend_data', 'site_raw_data',
+    'filtered_state_data','filtered_trend_data',
+    'sidebar_image','data_table_mode',
     'filtered_sites','site_user_choice',
     'colourblind_mode','colourblind_colours',
     'second_site','site2_user_choice','site2_data',
-    'reverse_2nd_axis','log_check']
+    'reverse_2nd_axis','log_check','log_check_trend', 'include_trend_scatter']
     for variable_i in state_variables:
         if variable_i not in st.session_state:
             st.session_state[variable_i] = None
+    dict_variables = ['full_state_data','full_trend_data',]   
+    for variable_j in dict_variables:
+        if variable_j not in st.session_state:
+            st.session_state[variable_j] = {}   
+    true_variables = ['plot_mode']        
+    for variable_j in true_variables:
+        if variable_j not in st.session_state:
+            st.session_state[variable_j] = True 
+
 ############################################
 load_page_setup()
 
@@ -86,215 +96,6 @@ Your acceptance of the enclosed material and/or services signifies your acceptan
 ############################################
 
 `,
-"pages/Rivers.py": `import streamlit as st
-import json
-import pyodide.http
-from PIL import Image
-from io import BytesIO
-import pandas as pd
-from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites, scatter_plot_2variables 
-
-############################################  
-from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox
-############################################
-###############################################################################
-############################################
-def choose_spatial_area():
-    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
-    spatial_user_choice = st.radio('How would you like to select your sites? By: ',['All sites'] + spatial_area_names)
-    return spatial_user_choice
-############################################
-def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
-    sub_spatial_user_choice = st.selectbox(f'Please choose a {spatial_user_choice}: ',['Please select one'] + sub_spatial_areas)
-    return sub_spatial_user_choice    
-############################################
-def choose_site_of_interest(site_list):
-    site_user_choice = st.selectbox('Please choose a site: ',['Please select one'] + site_list)
-    return site_user_choice        
-############################################
-def choose_coparison_site(site_list):
-    site2_user_choice = st.selectbox('Please choose a second site: ',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
-    return site2_user_choice 
-############################################
-def choose_attribute(attribute_list,text = 'Please choose an attribute to plot: '):
-    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
-    return attribute_user_choice  
-def choose_attribute_2(attribute_list,text = 'If desired, please choose a second attribute to plot: '):
-    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
-    return attribute_user_choice     
-############################################
-############################################
-############################################
-############################################
-############################################
-############################################
-# main 
-#load sidebar image
-st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
-#load colourblind checkbox
-load_colourblind_checkbox()
-#load plotting checkbox
-load_plotting_checkbox()
-#load datatable checkbox
-load_datatable_checkbox()
-
-#load site list
-if st.session_state['current_page'] != 'Rivers':
-    url = st.session_state['settings'].get('pages').get('Rivers')
-    sites = await load_url(url,text=True)
-    st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
-    
-#update current page
-st.session_state['current_page'] = 'Rivers'
-
-#write intro message
-st.write('---')
-st.write("**Welcome** to the rivers state results.") 
-st.write('---')
-
-#choose spatial area
-spatial_user_choice = choose_spatial_area()
-st.write('---')
-if spatial_user_choice == 'All sites':
-    sub_spatial_user_choice = 'N/A'
-    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
-else:
-    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
-    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
-    if sub_spatial_user_choice != 'Please select one':
-        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
-
-# choose site of interest    
-if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
-    st.session_state['site_user_choice']  =  choose_site_of_interest(st.session_state['filtered_sites']) 
-    st.write('---')  
-
-# display state and raw data link     
-if st.session_state['site_user_choice'] not in [None,'Please select one']:
-    st.subheader('Data downloads')
-    state_data_link,raw_data_link  =  get_data_links(topic = 'Rivers')
-    col1,col2 = st.columns(2)
-    with col1:
-        place_holder_1 = st.empty()
-        place_holder_1.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
-    with col2:
-        place_holder_2 = st.empty()
-        place_holder_2.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
-    st.write('---')    
- 
-    #load site data
-    if st.session_state['current_site'] != st.session_state['site_user_choice']:
-        url = state_data_link
-        site_data_in_bytes = await load_url(url,text=False)
-        try:st.session_state['current_site_data'] = pd.read_csv(BytesIO(site_data_in_bytes))
-        except:st.session_state['current_site_data'] = pd.read_excel(BytesIO(site_data_in_bytes))
-        st.session_state['current_site'] = st.session_state['site_user_choice']
-        
-
-st.markdown("""
-        <style>
-                .stPlotlyChart {
-                    height: 90vh !important;
-                            }
-        </style>
-        """, unsafe_allow_html=True)
-
-#plot grade_time_plot
-if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
-    st.subheader('Figures')
-    col_0,col_1 = st.columns(2)
-    col_0.write('**NOF grades over time**')
-    with col_1:
-        load_second_site_checkbox()
-
-    if st.session_state['second_site']:
-        with col_1:
-            st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
-            if st.session_state['site2_user_choice'] != 'Please select one':
-                state2_data_link,raw2_data_link  =  get_data_links(topic = 'Rivers', site2 = True)
-                url = state2_data_link
-                site2_data_in_bytes = await load_url(url,text=False)
-                try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
-                except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
-        if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
-            place_holder_1.write(f'''
-|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|   
-
-|--Download **STATE** data for [**{st.session_state['site2_user_choice']}**]({state2_data_link})--|            
-            ''')
-            place_holder_2.write(f'''
-|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|   
-
-|--Download **RAW** data for [**{st.session_state['site2_user_choice']}**]({raw2_data_link})--|
-            ''')            
-            with col_1:
-                load_reverse_second_axis_checkbox()
-            st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
-                        st.session_state['site2_data'],
-                        topic='Rivers'),
-                        use_container_width = True)   
-        
-        
-        if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
-            st.write('**NOF Grade scatterplot**')
-            user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site_user_choice"]}: ' )
-            user_attribute_site_2 = choose_attribute(sorted(list(st.session_state['site2_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site2_user_choice"]}: ' )
-            if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 in [None,"Please select one"]):       
-                load_log_checkbox()
-                st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
-                    user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
-                    use_container_width = True)  
-            if (user_attribute in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):       
-                load_log_checkbox()
-                st.plotly_chart(scatter_plot(st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
-                    user_attribute_site_2, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', sitename = st.session_state['site2_user_choice'], markersymbol = 'triangle-down'),
-                    use_container_width = True)                 
-            if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):   
-                load_log_checkbox()
-                st.plotly_chart(scatter_plot_2_sites(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True),st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
-                    user_attribute, user_attribute_site_2, 
-                    data_column0 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute), data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', 
-                    sitename0 = st.session_state['site_user_choice'], sitename1 = st.session_state['site2_user_choice']),
-                    use_container_width = True)          
-
-    
-    else:
-        c0,c1,c2 = st.columns([1,8,1])
-        c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
-                        use_container_width = True)        
-        c0.write('---')
-        c1.write('---')
-        c2.write('---')
-
-
-        with c1:
-            st.write('**NOF Grade scatterplot**')
-            user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
-            user_attribute_2 = choose_attribute_2(sorted(list([x for x in st.session_state['current_site_data']['attribute type'].unique() if x != user_attribute])))
-            if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 in [None,"Please select one"]):
-                load_log_checkbox()
-                st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
-                    user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
-                    use_container_width = True)
-            if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 not in [None,"Please select one"]):
-                load_log_checkbox()
-                st.plotly_chart(scatter_plot_2variables(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'].isin([user_attribute,user_attribute_2])].reset_index(drop=True), 
-                    user_attribute,user_attribute_2, 
-                    data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),
-                    data_column2 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_2),
-                    topic='Rivers', sitename = st.session_state['site_user_choice']),
-                    use_container_width = True)         
-    st.write('---')
-
-
-
-
-# show data
-if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['data_table_mode']):
-    st.write('---') 
-    st.subheader('Data table')
-    st.dataframe(st.session_state['current_site_data'],
-                hide_index=True)`,
 "functions.py": `import streamlit as st
 import json
 import pyodide.http
@@ -349,11 +150,17 @@ def load_reverse_second_axis_checkbox():
         st.session_state['reverse_2nd_axis'] = False   
 
 def load_log_checkbox():
-    log_check = st.checkbox('Plot the y-axis on a log scale?',value = st.session_state['log_check'])
+    log_check = st.checkbox('Plot the y-axis on a log scale?',value = st.session_state['log_check'],key='logcheck')
     if log_check:
         st.session_state['log_check'] = True
     else:
-        st.session_state['log_check'] = False          
+        st.session_state['log_check'] = False  
+def load_log_checkbox_trend():
+    log_check = st.checkbox('Plot the y-axis on a log scale?',value = st.session_state['log_check_trend'],key='logchecktrend')
+    if log_check:
+        st.session_state['log_check_trend'] = True
+    else:
+        st.session_state['log_check_trend'] = False                  
               
 ##########################################
 ##########################################
@@ -415,18 +222,23 @@ def clean_text(text, add_hash = False):
 def get_data_links(topic = 'Rivers', site2 = False):
     if site2:
         cleaned_site_name = clean_text(st.session_state['site2_user_choice'], add_hash = True)
-        state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
+        state_data_link = st.session_state['settings'].get('state_data') + f'{topic}/' +cleaned_site_name + '.xlsx'
+        trend_data_link = st.session_state['settings'].get('trend_data') + f'{topic}/' +cleaned_site_name + '.xlsx'
         raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'    
     else:
         cleaned_site_name = clean_text(st.session_state['site_user_choice'], add_hash = True)
-        state_data_link = st.session_state['settings'].get('state_data') + 'Rivers/' +cleaned_site_name + '.xlsx'
+        state_data_link = st.session_state['settings'].get('state_data') + f'{topic}/' +cleaned_site_name + '.xlsx'
+        trend_data_link = st.session_state['settings'].get('trend_data') + f'{topic}/' +cleaned_site_name + '.xlsx'
         raw_data_link = st.session_state['settings'].get('raw_data') + topic + '/' + cleaned_site_name + '.xlsx'
-    return state_data_link,raw_data_link
+    return state_data_link,raw_data_link, trend_data_link
 
 ##########################################
 ##########################################
 ##########################################
-
+def get_full_state_links(topic = 'Rivers'):
+    return st.session_state['settings'].get('state_data') + topic + '.xlsx'
+def get_full_trend_links(topic = 'Rivers'):
+    return st.session_state['settings'].get('trend_data') + topic + '.xlsx'
 
 ##########################################
 ##########################################
@@ -460,9 +272,9 @@ def grade_time_plot(data,topic='Rivers'):
                   },
                   title = f"{st.session_state['current_site']}",
                   )
-    fig.update_traces(marker_size   =18, 
-                     marker_opacity = 0.7,
-                     marker_symbol  = 'square')  
+    fig.update_traces(marker_size    = st.session_state['settings'].get('plot_settings').get('grade_time_marker_size'), 
+                      marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
+                      marker_symbol  = st.session_state['settings'].get('plot_settings').get('basic_marker_shape'),)  
     fig.update_layout(yaxis_title='')
     fig.update_layout(xaxis_title='')           
     fig.update_layout(legend_title_text='')    
@@ -472,13 +284,11 @@ def grade_time_plot(data,topic='Rivers'):
     final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
     fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
     
-    fig.update_layout(plot_bgcolor="#ededed")
-    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
-    #fig.update_layout(
-    #autosize=False,
-    #height=100+35*len(final_attributes),
-    #width = 50 + 35*len(list(copydata['year range'].unique()))
-    #)
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+
     return fig 
 
 ###########################################
@@ -519,10 +329,11 @@ def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
 
     
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))                  
-    fig.update_annotations(font=dict(size=16,color='black'))
-    fig.update_traces(marker_size   =18, 
-                     marker_opacity = 0.7,
-                     marker_symbol  = 'square')  
+    fig.update_annotations(font=dict(size=st.session_state['settings'].get('plot_settings').get('grade_time_font_size'),
+                                    color=st.session_state['settings'].get('plot_settings').get('font_colour')))
+    fig.update_traces(marker_size    = st.session_state['settings'].get('plot_settings').get('grade_time_marker_size'), 
+                      marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
+                      marker_symbol  = st.session_state['settings'].get('plot_settings').get('basic_marker_shape'),)  
     fig.update_layout(yaxis_title='')
     fig.update_layout(xaxis_title='')           
     fig.update_layout(legend_title_text='')    
@@ -532,13 +343,10 @@ def grade_time_plot_2_sites(data1,data2,topic='Rivers'):
     final_attributes = [x for x in attributes if x in st.session_state['settings'].get('nof_band_definitions').get(topic).keys()]
     fig.update_yaxes(categoryorder='array', categoryarray=final_attributes )  
     
-    fig.update_layout(plot_bgcolor="#ededed")
-    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
-    #fig.update_layout(
-    #autosize=False,
-    #height=100+35*len(final_attributes),
-    #width = 50 + 35*len(list(copydata['year range'].unique()))
-    #)
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
     return fig     
 
 ###########################################
@@ -575,16 +383,18 @@ def scatter_plot(data, attribute_name, data_column = 'Median',topic='Rivers', si
                   log_y = st.session_state['log_check'],
                   range_y = [min_y,max_y],
                   )
-    fig.update_traces(marker_size   =22, 
-                     marker_opacity = 0.7,
+    fig.update_traces(marker_size   = st.session_state['settings'].get('plot_settings').get('scatter_marker_size'), 
+                     marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
                      marker_symbol  = markersymbol,
-                     textfont_color = 'white')  
+                     textfont_color = st.session_state['settings'].get('plot_settings').get('scatter_font_colour'))  
     fig.update_layout(yaxis_title=f"{attribute_name} ({st.session_state['settings'].get('nof_attribute_statistics').get(attribute_name)}, {st.session_state['settings'].get('nof_attribute_units').get(attribute_name)})")
     fig.update_layout(xaxis_title='')           
     fig.update_layout(legend_title_text='')    
 
-    fig.update_layout(plot_bgcolor="#ededed")
-    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
 
     #adding background colours
     if (st.session_state['settings'].get('add_nof_grade_background_colours')) and (st.session_state['settings'].get('nof_band_definitions').get(topic).get(attribute_name)):
@@ -599,16 +409,16 @@ def scatter_plot(data, attribute_name, data_column = 'Median',topic='Rivers', si
     import plotly.graph_objects as go
     if not topic == "Contact Rec":
         fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="A",
-                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol='square'),),)
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
         fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="B",
-                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol='square'),),)                        
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)                        
         fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="C",
-                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol='square'),),)
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
         fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="D",
-                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol='square'),),)                                                
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)                                                
         if "E coli" in attribute_name:
             fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="E",
-                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol='square'),),)
+                                marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
 
                     
     return fig 
@@ -648,24 +458,29 @@ def scatter_plot_2variables(data, attribute_name1,attribute_name2, data_column1 
     max_y = 1.025*max(copydata['final_data_column'])
     import plotly.express as px
     fig = px.scatter(copydata, x='year range', y='final_data_column', 
-                  color="attribute type",
+                  color="site name",
                   hover_data="NOF_Grade", text = "NOF_Grade",
                   title = f"{sitename}: {attribute_name1} -- and -- {attribute_name2}",
-                  color_discrete_map = {attribute_name1: "black", attribute_name2 : 'mediumpurple'},
+                  color_discrete_map = {sitename: "black"},
                   log_y = st.session_state['log_check'],
                   range_y = [min_y,max_y],
                   symbol = "attribute type",
                   symbol_map = {attribute_name1: markersymbol1, attribute_name2: markersymbol2},
+                  category_orders={
+                  "year range": final_year_list,
+                  },
                   )
-    fig.update_traces(marker_size   =22, 
-                     marker_opacity = 0.7,
-                     textfont_color = 'white')  
+    fig.update_traces(marker_size   =st.session_state['settings'].get('plot_settings').get('scatter_marker_size'), 
+                     marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
+                     textfont_color = st.session_state['settings'].get('plot_settings').get('scatter_font_colour'))  
     fig.update_layout(yaxis_title='')
     fig.update_layout(xaxis_title='')           
     fig.update_layout(legend_title_text='')    
 
-    fig.update_layout(plot_bgcolor="#ededed")
-    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
                 
     return fig 
 
@@ -729,10 +544,10 @@ def scatter_plot_2_sites(data0,data1,
                   "year range": final_year_list,
                   },
                   )
-    fig.update_traces(marker_size   =22, 
-                     marker_opacity = 0.7,
+    fig.update_traces(marker_size   =st.session_state['settings'].get('plot_settings').get('scatter_marker_size'), 
+                     marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
                      #marker_symbol  = markersymbol,
-                     textfont_color = 'white')  
+                     textfont_color = st.session_state['settings'].get('plot_settings').get('scatter_font_colour'))  
     if attribute_name0 == attribute_name1:                 
         fig.update_layout(yaxis_title=f"{attribute_name0} ({st.session_state['settings'].get('nof_attribute_statistics').get(attribute_name0)}, {st.session_state['settings'].get('nof_attribute_units').get(attribute_name0)})")
     else:
@@ -741,8 +556,10 @@ def scatter_plot_2_sites(data0,data1,
     fig.update_layout(xaxis_title='')           
     fig.update_layout(legend_title_text='')    
 
-    fig.update_layout(plot_bgcolor="#ededed")
-    fig.update_yaxes(showgrid=True, gridwidth=2, gridcolor='white')
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
 
     #adding background colours
     if attribute_name0 == attribute_name1:
@@ -758,19 +575,2009 @@ def scatter_plot_2_sites(data0,data1,
         import plotly.graph_objects as go
         if not topic == "Contact Rec":
             fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="A",
-                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol='square'),),)
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('A'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
             fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="B",
-                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol='square'),),)                        
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('B'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)                        
             fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="C",
-                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol='square'),),)
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('C'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
             fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="D",
-                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol='square'),),)                                                
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('D'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)                                                
             if "E coli" in attribute_name0:
                 fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name="E",
-                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol='square'),),)
+                                    marker=dict(size=7, color=st.session_state['colourblind_colours'].get('E'), symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)
 
                     
-    return fig `,
+    return fig 
+
+
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+def time_series_scatter_plot(data, variable_name, variable_units, trend_period, trend_text = '', data_column = 'Value', date_column = 'date time',topic='Rivers', sitename = st.session_state['current_site'], markersymbol = 'triangle-up',censored_markersymbol = 'hexagon2', marker_colour = '#86dcd5',censored_marker_colour = '#fa6e75', 
+plot_trend=False, trend_dates = None, trend_data = None, trend_lci = None, trend_uci = None):
+    copydata = copy.deepcopy(data)
+    
+    #deal with censored values
+    raw_value = []
+    censored = []
+    marker_ = []
+    marker_colour_ = []
+    for iter_q,row_q in  copydata.iterrows():
+        if str(row_q[data_column][0]) in ['<','>']:
+            raw_value.append(float(str(row_q[data_column][1:])))
+            censored.append(True)
+            marker_.append(censored_markersymbol)
+            marker_colour_.append(censored_marker_colour)
+        else:
+            raw_value.append(float(row_q[data_column]))
+            censored.append(False)
+            marker_.append(markersymbol)
+            marker_colour_.append(marker_colour)
+    copydata['raw_value'] = raw_value
+    copydata['censored'] = censored  
+    copydata['marker_symbol'] = marker_  
+    copydata['marker_colour'] = marker_colour_      
+ 
+    if st.session_state['log_check_trend']:
+        copydata = copydata.loc[copydata['raw_value'] > 0.].reset_index(drop=True)
+        min_y = 0.975*min(copydata['raw_value'])
+    else:
+        min_y = 0
+    max_y = 1.025*max(copydata['raw_value'])
+
+    import plotly.express as px
+    fig = px.scatter(copydata, x=date_column, y='raw_value', 
+                  color="marker_colour",
+                  color_discrete_map ={marker_colour:marker_colour,censored_marker_colour:censored_marker_colour},
+                  symbol_map ={censored_markersymbol:censored_markersymbol,markersymbol:markersymbol},
+                  symbol  = "marker_symbol",
+                  hover_data=[data_column, "censored"],
+                  title = sitename,
+                  log_y = st.session_state['log_check_trend'],
+                  range_y = [min_y,max_y],
+                  )
+    fig.update_traces(marker_size   =st.session_state['settings'].get('plot_settings').get('time_series_marker_size'), 
+                     marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
+                     textfont_color = st.session_state['settings'].get('plot_settings').get('scatter_font_colour'))  
+    fig.update_layout(yaxis_title=f"{variable_name} [{variable_units}]")
+    fig.update_layout(xaxis_title='date')           
+    fig.update_layout(legend_title_text='')    
+
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    fig.update_layout(showlegend=False)
+    
+    #add trend if present
+    if plot_trend:
+        import plotly.graph_objects as go
+        fig.add_trace(go.Scatter(x=trend_dates, y=trend_data,
+                    mode='lines',
+                    name='lines',
+                    line = dict(color='black', width=4)))
+        fig.add_trace(go.Scatter(x=trend_dates, y=trend_lci,
+                    mode='lines',
+                    name='lines',
+                    line = dict(color='orange', width=2, dash='dash')))
+        fig.add_trace(go.Scatter(x=trend_dates, y=trend_uci,
+                    mode='lines',
+                    name='lines',
+                    line = dict(color='orange', width=2, dash='dash')))                        
+
+        fig.update_layout(
+        title=f"{sitename} : with {trend_period} year trend ({trend_text})",)
+                    
+    return fig     
+
+
+
+
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+###########################################
+
+def trend_classification_plot(data,topic='Rivers',marker = 'square'):
+
+    copydata = copy.deepcopy(data)
+    copydata['marker_colour'] = copydata["confidence of improving trend"].map(st.session_state['settings'].get('trend_colours'))
+    final_year_list = sorted(list(copydata['trend period'].unique()))
+    copydata = copydata.sort_values(by = ['parameter name'],ascending = True, key=lambda col: col.str.lower()).reset_index(drop=True)
+    
+    import plotly.express as px
+    import plotly.graph_objects as go
+    fig = px.scatter(copydata, x='trend period', y='parameter name', color="confidence of improving trend",
+                  hover_data=["confidence of improving trend"],# text = "confidence of improving trend",
+                  color_discrete_map = st.session_state['settings'].get('trend_colours'),
+                  category_orders={
+                  'parameter name':sorted(list(copydata['parameter name'].unique()),key=str.casefold),
+                  "confidence of improving trend": list(st.session_state['settings'].get('trend_colours').keys())[0:3],
+                  "trend period" : sorted(list(copydata['trend period'].unique()))
+                  },
+                  title = f"{st.session_state['current_site']}",
+                  )
+    fig.update_traces(marker_size   = st.session_state['settings'].get('plot_settings').get('trend_classification_marker_size'), 
+                     marker_opacity = st.session_state['settings'].get('plot_settings').get('marker_opacity'),
+                     marker_symbol  = st.session_state['settings'].get('plot_settings').get('basic_marker_shape'))  
+    fig.update_layout(yaxis_title='')
+    fig.update_layout(xaxis_title='Trend period (years)')           
+    fig.update_layout(legend_title_text='')    
+    fig.update_xaxes(type='category')
+    
+    final_attributes = list(st.session_state['settings'].get('trend_colours').keys())
+    
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+
+    for trace in fig.data:
+        trace.showlegend = False
+
+    traces_to_include = {x+'/increasing':y for x,y in st.session_state['settings'].get('trend_colours').items() if 'improving' in x}
+    #add traces for legend
+    for key_j,value_j in traces_to_include.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                    marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                        color=value_j, 
+                                        symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)    
+
+
+
+    return fig 
+
+    #"confidence of improving trend": list(st.session_state['settings'].get('trend_colours').keys()),`,
+"pages/1_Rivers.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+import pandas as pd
+import datetime
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites, scatter_plot_2variables, time_series_scatter_plot, trend_classification_plot 
+
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:2rem;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
+
+############################################  
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox, load_log_checkbox_trend
+############################################
+###############################################################################
+############################################
+def choose_spatial_area():
+    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
+    spatial_user_choice = st.radio('How would you like to select your sites? By: ',['All sites'] + spatial_area_names)
+    return spatial_user_choice
+############################################
+def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
+    sub_spatial_user_choice = st.selectbox(f'Please choose a {spatial_user_choice}: ',['Please select one'] + sub_spatial_areas)
+    return sub_spatial_user_choice    
+############################################
+def choose_site_of_interest(site_list):
+    site_user_choice = st.selectbox('Please choose a site: ',['Please select one'] + site_list)
+    return site_user_choice        
+############################################
+def choose_coparison_site(site_list):
+    site2_user_choice = st.selectbox('Please choose a second site: ',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
+    return site2_user_choice 
+############################################
+def choose_attribute(attribute_list,text = 'Please choose an attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice  
+def choose_attribute_2(attribute_list,text = 'If desired, please choose a second attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice     
+############################################
+def trend_period(period_list):
+    trend_user_choice = st.selectbox('Please choose a trend period: ',['Please select one'] + [x for x in period_list])
+    return trend_user_choice 
+def choose_scatter_plotting_parameter(parameter_list):
+    parameter_user_choice = st.selectbox('Please choose a parameter: ',['Please select one'] + [x for x in parameter_list])
+    return parameter_user_choice     
+############################################
+############################################
+############################################
+############################################
+############################################
+# main 
+#load sidebar image
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
+#load colourblind checkbox
+load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
+
+#load site list
+if st.session_state['current_page'] != 'Rivers':
+    url = st.session_state['settings'].get('pages').get('Rivers')
+    sites = await load_url(url,text=True)
+    st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
+    
+#update current page
+st.session_state['current_page'] = 'Rivers'
+
+#clear some variabls from session state
+clear_session_state_list = ['site2_user_choice','site2_data']
+for variable_j in clear_session_state_list:
+    st.session_state[variable_j] = None
+false_session_state_variables = ['second_site','reverse_2nd_axis']
+for variable_j in false_session_state_variables:
+    st.session_state[variable_j] = False
+
+#write intro message
+st.write('---')
+st.write("**Welcome** to the rivers state results.") 
+st.write(f"State and trend analyis is current for data up to **{st.session_state['settings'].get('final_date')}**") 
+st.write('---')
+
+#choose spatial area
+spatial_user_choice = choose_spatial_area()
+st.write('---')
+if spatial_user_choice == 'All sites':
+    sub_spatial_user_choice = 'N/A'
+    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
+else:
+    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
+    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
+    if sub_spatial_user_choice != 'Please select one':
+        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
+
+# choose site of interest    
+if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
+    st.session_state['site_user_choice']  =  choose_site_of_interest(st.session_state['filtered_sites']) 
+    st.write('---')  
+
+# display state and raw data link     
+if st.session_state['site_user_choice'] not in [None,'Please select one']:
+    st.subheader('Data downloads')
+    state_data_link,raw_data_link, trend_data_link  =  get_data_links(topic = 'Rivers')
+
+    #try to get trend data for this site
+    try:
+        trend_data_in_bytes = await load_url(trend_data_link,text=False)
+        try:
+            st.session_state['site_trend_data'] = pd.read_csv(BytesIO(trend_data_in_bytes))
+        except:st.session_state['site_trend_data'] = pd.read_excel(BytesIO(trend_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_trend_data'] = None
+
+    #try to get raw data for this site
+    try:
+        raw_data_in_bytes = await load_url(raw_data_link,text=False)
+        try:
+            st.session_state['site_raw_data'] = pd.read_csv(BytesIO(raw_data_in_bytes))
+        except:st.session_state['site_raw_data'] = pd.read_excel(BytesIO(raw_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_raw_data'] = None    
+
+    col1,col2 = st.columns(2)
+    with col1:
+        place_holder_1 = st.empty()
+        place_holder_trend = st.empty()
+        place_holder_3 = st.empty()
+        
+        place_holder_1.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
+        if st.session_state['site_trend_data'] is not None:
+            place_holder_trend.write(f"|--Download **TREND** data for [**{st.session_state['site_user_choice']}**]({trend_data_link})--|")
+        else:
+            place_holder_trend.write(f"|--NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}--|")
+        place_holder_3.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
+    st.write('---')    
+ 
+    #load site data
+    if st.session_state['current_site'] != st.session_state['site_user_choice']:
+        url = state_data_link
+        site_data_in_bytes = await load_url(url,text=False)
+        try:st.session_state['current_site_data'] = pd.read_csv(BytesIO(site_data_in_bytes))
+        except:st.session_state['current_site_data'] = pd.read_excel(BytesIO(site_data_in_bytes))
+        st.session_state['current_site'] = st.session_state['site_user_choice']
+        
+
+st.markdown("""
+        <style>
+                .stPlotlyChart {
+                    height: 90vh !important;
+                            }
+        </style>
+        """, unsafe_allow_html=True)
+
+if (st.session_state['plot_mode']) or (st.session_state['data_table_mode']):
+    tab1, tab2 = st.tabs([" **State figures**", " **Trend figures**"])
+    with tab1:
+        #THIS TAB DISPLAYS STATE RESULTS
+        #plot grade_time_plot
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
+            col_0,col_1 = st.columns(2)
+            col_0.write('**NOF grades over time**')
+            with col_1:
+                load_second_site_checkbox()
+
+            if st.session_state['second_site']:
+                with col_1:
+                    st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
+                    if st.session_state['site2_user_choice'] != 'Please select one':
+                        state2_data_link,raw2_data_link,trend_2_data_link  =  get_data_links(topic = 'Rivers', site2 = True)
+                        url = state2_data_link
+                        site2_data_in_bytes = await load_url(url,text=False)
+                        try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
+                        except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
+                with col_1:
+                    place_holder_4 = st.empty()
+                    place_holder_trend_site2 = st.empty()
+                    place_holder_6 = st.empty()
+                    if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                        place_holder_4.write(f'''
+            |--Download **STATE** data for [**{st.session_state['site2_user_choice']}**]({state2_data_link})--|            
+                        ''')
+                        place_holder_trend_site2.write(f'''
+            |--Download **TREND** data for [**{st.session_state['site2_user_choice']}**]({trend_2_data_link})--|
+                        ''')            
+                        place_holder_6.write(f'''
+            |--Download **RAW** data for [**{st.session_state['site2_user_choice']}**]({raw2_data_link})--|
+                        ''')            
+                with col_1:
+                    load_reverse_second_axis_checkbox()
+                st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
+                            st.session_state['site2_data'],
+                            topic='Rivers'),
+                            use_container_width = True)   
+                
+                
+                if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site_user_choice"]}: ' )
+                    user_attribute_site_2 = choose_attribute(sorted(list(st.session_state['site2_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site2_user_choice"]}: ' )
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)  
+                    if (user_attribute in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute_site_2, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', sitename = st.session_state['site2_user_choice'], markersymbol = 'triangle-down'),
+                            use_container_width = True)                 
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):   
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2_sites(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True),st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute, user_attribute_site_2, 
+                            data_column0 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute), data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Rivers', 
+                            sitename0 = st.session_state['site_user_choice'], sitename1 = st.session_state['site2_user_choice']),
+                            use_container_width = True)          
+
+            
+            else:
+                c0,c1,c2 = st.columns([1,8,1])
+                c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Rivers'),
+                                use_container_width = True)        
+                c0.write('---')
+                c1.write('---')
+                c2.write('---')
+
+
+                with c1:
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
+                    user_attribute_2 = choose_attribute_2(sorted(list([x for x in st.session_state['current_site_data']['attribute type'].unique() if x != user_attribute])))
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Rivers', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 not in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2variables(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'].isin([user_attribute,user_attribute_2])].reset_index(drop=True), 
+                            user_attribute,user_attribute_2, 
+                            data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),
+                            data_column2 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_2),
+                            topic='Rivers', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)         
+            st.write('---')
+
+
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['current_site_data'],
+                        hide_index=True)
+
+            if st.session_state['site2_data'] is not None:  
+                st.subheader(f'Data table: {st.session_state["site2_user_choice"]}')
+                st.dataframe(st.session_state['site2_data'],
+                            hide_index=True)          
+
+    with tab2:
+        #THIS TAB DISPLAYS TREND RESULTS                    
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode'] & (st.session_state['site_raw_data'] is not None)):
+            st.write('---')
+            with st.expander("Trend classifications (click to expand)"):   
+                if st.session_state['site_trend_data'] is not None:
+                    st.plotly_chart(trend_classification_plot(st.session_state['site_trend_data'],topic='Rivers',marker = 'square'),
+                                    use_container_width = False) 
+                else: st.write(f"NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}")
+            
+            ########################################################################################
+            ########################################################################################
+            ########################################################################################
+            with st.expander("Data scatterplot (click to expand)"):  
+                user_scatter_parameter = choose_scatter_plotting_parameter(sorted(list(st.session_state['site_raw_data']['parameter name'].unique())))
+                if user_scatter_parameter != 'Please select one':
+                    if user_scatter_parameter == 'Ammoniacal Nitrogen (NH4)':
+                        st.warning('**PLEASE NOTE:** Ammoniacal Nitrogen displayed below is the measured value, it is NOT adjusted for pH.')
+                    temp_scatter_data = st.session_state['site_raw_data'].loc[st.session_state['site_raw_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                    date_list     = []
+                    data_list     = []
+                    data_list_lci = []
+                    data_list_uci = []
+                    confidence_statement = ''
+                    #if there is a trend, plot it here
+                    if st.session_state['site_trend_data'] is not None:
+                        temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                        #temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['variable'] == user_scatter_parameter].reset_index(drop=True)
+                        if len(temp_scatter_trend)>0:
+                            user_trend_period = trend_period(sorted(list(temp_scatter_trend["trend period"].unique())))
+                            if user_trend_period != 'Please select one':
+                                st.session_state['include_trend_scatter'] = True
+                                temp_scatter_trend_year = temp_scatter_trend.loc[temp_scatter_trend['trend period'] == user_trend_period].reset_index(drop=True)
+                                start_date = datetime.datetime.strptime(st.session_state['settings'].get('final_date'), '%d/%m/%Y') 
+                                date_list = [start_date - (datetime.timedelta(days=round(user_trend_period*365))),
+                                start_date - datetime.timedelta(days=round(user_trend_period/2*365)),
+                                start_date]
+
+                                median_value = temp_scatter_trend_year['median value for the trend period'].values[-1]
+                                sen_slope = temp_scatter_trend_year['annual Sen slope (attribute units/year)'].values[-1]
+                                sen_slope_lci = temp_scatter_trend_year['lower confidence interval for annual Sen slope'].values[-1]
+                                sen_slope_uci = temp_scatter_trend_year['upper confidence interval for annual Sen slope'].values[-1]
+                                confidence_statement = temp_scatter_trend_year['confidence of improving trend'].values[-1]
+                                analysis_note = temp_scatter_trend_year['analysis note'].values[-1]
+                                if 'warning' in analysis_note.lower():
+                                    st.warning(f"{analysis_note}")
+                                
+                                data_list = [
+                                    median_value - sen_slope*(user_trend_period/2),
+                                    median_value,
+                                    median_value + sen_slope*(user_trend_period/2),
+                                ]
+
+                                data_list_lci = [
+                                    median_value - sen_slope_lci*(user_trend_period/2),
+                                    median_value,
+                                    median_value + sen_slope_lci*(user_trend_period/2),
+                                ]
+
+                                data_list_uci = [
+                                    median_value - sen_slope_uci*(user_trend_period/2),
+                                    median_value,
+                                    median_value + sen_slope_uci*(user_trend_period/2),
+                                ]
+                                
+                        else:
+                            st.write('No trend data at this site for this parameter')   
+                            st.session_state['include_trend_scatter'] = False 
+                    else:
+                        st.write('No trend data at this site')   
+                        st.session_state['include_trend_scatter'] = False     
+
+                    load_log_checkbox_trend() 
+                    #plot scatterplot here
+                    st.plotly_chart(time_series_scatter_plot(temp_scatter_data, user_scatter_parameter, temp_scatter_data['Unit'].values[-1],user_trend_period,trend_text = confidence_statement, data_column = 'Value', date_column = 'date time',topic='Rivers', sitename = st.session_state['current_site'], markersymbol = 'triangle-up',censored_markersymbol = 'hexagon2', marker_colour = '#86dcd5',censored_marker_colour = '#fa6e75', plot_trend=st.session_state['include_trend_scatter'], 
+                    trend_dates = date_list, trend_data = data_list, trend_lci = data_list_lci, trend_uci = data_list_uci),
+                                    use_container_width = True) 
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['site_trend_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['site_trend_data'],
+                        hide_index=True)        
+`,
+"pages/0_Statistics.py": `import streamlit as st
+import json
+import copy
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+import pandas as pd
+from spatial_plotting import plot_spatial_grade_summary,plot_spatial_grade_summary_over_time, plot_site_grades,plot_spatial_trend_summary,plot_site_trends
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox, get_full_state_links,get_full_trend_links
+
+
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:2rem;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
+
+
+
+############################################
+############################################
+############################################
+def choose_spatial_area():
+    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
+    spatial_user_choice = st.radio('What scale would you like to view the results? By: ',['Entire Region'] + spatial_area_names, key = 'spatial_selector')
+    return spatial_user_choice
+def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
+    sub_spatial_user_choice = st.selectbox(f'Please choose a {spatial_user_choice}: ',['Please select one'] + sub_spatial_areas, key = 'subspatial_select')
+    return sub_spatial_user_choice      
+############################################
+############################################
+############################################
+def state_period(period_list):
+    state_user_choice = st.selectbox('Please choose a state period: ',['Please select one'] + [x for x in period_list],key='choose_state_period')
+    return state_user_choice 
+def trend_period(period_list):
+    state_user_choice = st.selectbox('Please choose a state period: ',['Please select one'] + [x for x in period_list],key='choose_trend_period')
+    return state_user_choice     
+def state_attribute(attribute_list):
+    attribute_user_choice = st.selectbox('Please choose an attribute to view over time: ',['Please select one'] + [x for x in attribute_list])
+    return attribute_user_choice 
+def trend_attribute(attribute_list):
+    attribute_user_choice = st.selectbox('Please choose a variable to view over time: ',['Please select one'] + [x for x in attribute_list])
+    return attribute_user_choice         
+############################################
+############################################
+############################################
+
+############################################
+############################################
+############################################
+
+############################################
+############################################
+############################################
+
+############################################
+############################################
+############################################
+############################################
+############################################
+############################################
+############################################
+############################################
+############################################
+# main 
+#load sidebar image
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
+#load colourblind checkbox
+load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
+
+#add topic checkbox
+st.write('---')
+user_topic = st.radio('Please choose a topic',sorted(list(st.session_state['settings'].get('pages').keys())), horizontal = True) 
+url = get_full_state_links(topic=user_topic)
+url_trend = get_full_trend_links(topic=user_topic)
+
+status_text = st.empty()
+status_text.write("Please wait: LOADING DATA...")
+#get state data
+if user_topic not in st.session_state['full_state_data'].keys():
+    try:
+        topic_state_data_in_bytes =  await load_url(url,text=False)
+        try:topic_state_data = pd.read_csv(BytesIO(topic_state_data_in_bytes))
+        except:topic_state_data = pd.read_excel(BytesIO(topic_state_data_in_bytes))
+        st.write(f"State data LOADED for topic {user_topic}. You may download the data [HERE]({url})")
+        st.session_state['full_state_data'].update({user_topic:topic_state_data})
+    except:
+        st.write(f"State data does not seem to exist for topic {user_topic}")
+else:
+    st.write(f"State data LOADED for topic {user_topic}. You may download the data [HERE]({url})")    
+
+
+    #get trend data
+if user_topic not in st.session_state['full_trend_data'].keys():       
+    try:
+        topic_trend_data_in_bytes =  await load_url(url_trend,text=False)
+        try:topic_trend_data = pd.read_csv(BytesIO(topic_trend_data_in_bytes))
+        except:topic_trend_data = pd.read_excel(BytesIO(topic_trend_data_in_bytes))
+        st.write(f"Trend data LOADED for topic {user_topic}. You may download the data [HERE]({url_trend})")
+        st.session_state['full_trend_data'].update({user_topic:topic_trend_data})
+    except:
+        st.write(f"Trend data does not seem to exist for topic {user_topic}")    
+else:
+    st.write(f"Trend data LOADED for topic {user_topic}. You may download the data [HERE]({url_trend})")        
+
+
+status_text.write("")
+
+##########################################################################
+#choose spatial area
+#update topic sites
+url = st.session_state['settings'].get('pages').get(user_topic)
+sites = await load_url(url,text=True)
+st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
+spatial_user_choice = choose_spatial_area()
+
+if spatial_user_choice == 'Entire Region':
+    sub_spatial_user_choice = 'Entire Region'
+    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
+    st.session_state['filtered_state_data'] = copy.deepcopy(st.session_state['full_state_data'].get(user_topic))
+    st.session_state['filtered_trend_data'] = copy.deepcopy(st.session_state['full_trend_data'].get(user_topic))
+else:
+    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
+    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
+    if sub_spatial_user_choice != 'Please select one':
+        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
+        st.session_state['filtered_state_data'] = st.session_state['full_state_data'].get(user_topic).loc[st.session_state['full_state_data'].get(user_topic)['site name'].isin(st.session_state['filtered_sites'])].reset_index(drop=True)
+        st.session_state['filtered_trend_data'] = st.session_state['full_trend_data'].get(user_topic).loc[st.session_state['full_trend_data'].get(user_topic)['site name'].isin(st.session_state['filtered_sites'])].reset_index(drop=True)
+st.write('---')
+
+
+
+if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_user_choice != 'Please select one'):
+    tab1, tab2 = st.tabs([" **State figures**", " **Trend figures**"])
+    #plot state stuff
+    with tab1:
+        if len(st.session_state['filtered_state_data']) > 0:
+            if user_topic == 'Contact_Recreation':
+                st.session_state['filtered_state_data'] = st.session_state['filtered_state_data'].loc[st.session_state['filtered_state_data']['attribute type'] == 'E. coli (Primary Contact)'].reset_index(drop=True)
+            
+            extra_title_info = ''
+            if user_topic == 'Rivers':
+                impact_sites = st.checkbox('Plot impact sites (instead of SoE sites)')
+                if impact_sites:
+                    plot_data = st.session_state['filtered_state_data'].loc[st.session_state['filtered_state_data']['site type'] == 'Impact'].reset_index(drop=True)
+                    st.write("Plotting river **Impact** sites")
+                    extra_title_info = '(Impact sites)'
+                else:
+                    plot_data = st.session_state['filtered_state_data'].loc[st.session_state['filtered_state_data']['site type'] == 'RepSite'].reset_index(drop=True)
+                    st.write("Plotting river **SoE** sites")
+                    extra_title_info = '(SoE sites)'
+            else:   plot_data = st.session_state['filtered_state_data']   
+               
+
+            with st.expander("Spatial grade summary (click to expand)"):
+                #grade summary
+                user_state_years = state_period(sorted(list(plot_data['year range'].unique())))
+                if user_state_years != 'Please select one':
+                    sort_by_best_grade = st.checkbox('Sort variables from worst to best? (Otherwise, alphabetically)')
+                    st.plotly_chart(plot_spatial_grade_summary(plot_data.loc[plot_data['year range'] == user_state_years].reset_index(drop=True),topic=user_topic,date_range = user_state_years,spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info,sort_by_best_grade=sort_by_best_grade),
+                                        use_container_width = False) 
+
+            st.write('---')
+            with st.expander("Spatial grade site summary (click to expand)"):   
+                if user_state_years != 'Please select one':
+                    sort_by_grades = st.checkbox('Sort sites from worst to best? (Otherwise, alphabetically)')
+                    st.plotly_chart(plot_site_grades(plot_data.loc[plot_data['year range'] == user_state_years].reset_index(drop=True),topic=user_topic,date_range = user_state_years,spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info,sort_by_grades=sort_by_grades),
+                                        use_container_width = False) 
+                        
+            #site summary                                   
+            st.write('---')
+            with st.expander("Spatial grade summary over time (click to expand)"):
+                #grade summary over time  
+                user_attribute_over_time = state_attribute(sorted(list(plot_data.loc[~plot_data['NOF_Grade'].isnull()]['attribute type'].unique())))                      
+                if user_attribute_over_time != 'Please select one':
+                    st.plotly_chart(plot_spatial_grade_summary_over_time(plot_data.loc[plot_data['attribute type'] == user_attribute_over_time].reset_index(drop=True),topic=user_topic,attribute = user_attribute_over_time,spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info),
+                                        use_container_width = False) 
+  
+                                         
+
+            
+
+
+
+
+    #plot trend stuff
+    with tab2:
+        if user_topic not in st.session_state['full_trend_data'].keys():
+            st.write(f"State data does not seem to exist for topic {user_topic}")
+        else:
+            extra_title_info = ''
+            if user_topic == 'Rivers':
+                impact_sites = st.checkbox('Plot impact sites (instead of SoE sites)',key='trend_impact_sites')
+                if impact_sites:
+                    plot_data = st.session_state['filtered_trend_data'].loc[st.session_state['filtered_trend_data']['site type'] == 'Impact'].reset_index(drop=True)
+                    st.write("Plotting river **Impact** sites")
+                    extra_title_info = '(Impact sites)'
+                else:
+                    plot_data = st.session_state['filtered_trend_data'].loc[st.session_state['filtered_trend_data']['site type'] == 'RepSite'].reset_index(drop=True)
+                    st.write("Plotting river **SoE** sites")
+                    extra_title_info = '(SoE sites)'
+            else:   plot_data = st.session_state['filtered_trend_data']   
+
+
+            with st.expander("Spatial trend summary (click to expand)"):
+                #grade summary
+                user_trend_period = trend_period(sorted(list(plot_data['trend period'].unique())))
+                if user_trend_period != 'Please select one':
+                    sort_by_best_trend = st.checkbox('Sort trend variables from worst to best? (Otherwise, alphabetically)')
+                    st.plotly_chart(plot_spatial_trend_summary(plot_data.loc[plot_data['trend period'] == user_trend_period].reset_index(drop=True),topic=user_topic,date_range = str(user_trend_period) + ' year trends',spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info,sort_by_best_trend=sort_by_best_trend),
+                                        use_container_width = False) 
+
+            st.write('---')
+            with st.expander("Spatial trend site summary (click to expand)"):   
+                if user_trend_period != 'Please select one':
+                    sort_by_trend = st.checkbox('Sort sites from worst to best? (Otherwise, alphabetically)',key='trend_sites_sort')
+                    st.plotly_chart(plot_site_trends(plot_data.loc[plot_data['trend period'] == user_trend_period].reset_index(drop=True),topic=user_topic,           date_range = str(user_trend_period) + ' year trends',spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info,sort_by_trend=sort_by_trend),
+                                        use_container_width = False)            
+                                           
+
+`,
+"spatial_plotting.py": `import streamlit as st
+import copy
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from math import ceil
+
+river_grades = ['A','B','C','D','E']
+contact_rec_grades = [x for x in st.session_state['colourblind_colours'].keys() if x not in river_grades]
+
+
+def percentage(mydata,classification = 'NOF_Grade', attribute = 'attribute type', colourmap = st.session_state['colourblind_colours']):
+    my_data = copy.deepcopy(mydata)
+    my_data = my_data.loc[~my_data[classification].isnull()].reset_index(drop=True)
+    percentages = pd.DataFrame(columns = ['attribute','grade','percentage','colour'])
+    attribute_site_number = {}
+    for attribute_j in sorted(list(my_data[attribute].unique())):
+        filtered_data = my_data.loc[my_data[attribute] == attribute_j].reset_index(drop=True)
+        attribute_site_number.update({attribute_j:len(filtered_data)})
+        for grade_j in filtered_data[classification].unique():
+            percentages.loc[len(percentages)] = [attribute_j,
+                                                grade_j,
+                                                100*len(filtered_data.loc[filtered_data[classification]==grade_j].reset_index(drop=True))/len(filtered_data),
+                                                colourmap.get(grade_j),
+                                                ]
+    return percentages,attribute_site_number    
+    
+def percentage_over_time(mydata,classification = 'NOF_Grade', attribute = 'attribute type', colourmap = st.session_state['colourblind_colours']):
+    my_data = copy.deepcopy(mydata)
+    my_data = my_data.loc[~my_data[classification].isnull()].reset_index(drop=True)
+    percentages = pd.DataFrame(columns = ['year range','grade','percentage','colour'])
+    attribute_site_number = {}
+    for time_period_j in sorted(list(my_data['year range'].unique())):
+        filtered_data = my_data.loc[my_data['year range'] == time_period_j].reset_index(drop=True)
+        attribute_site_number.update({time_period_j:len(filtered_data)})
+        for grade_j in filtered_data[classification].unique():
+            percentages.loc[len(percentages)] = [time_period_j,
+                                                grade_j,
+                                                100*len(filtered_data.loc[filtered_data[classification]==grade_j].reset_index(drop=True))/len(filtered_data),
+                                                colourmap.get(grade_j),
+                                                ]
+    return percentages,attribute_site_number                                            
+
+
+def order_variables_by_goodness(data,topic):
+    my_data = copy.deepcopy(data)
+    if topic == 'Contact_Recreation':
+         score_map = {"Very Good":2,
+                    "Good"      :1,
+                    "Fair"      :0,
+                    "Poor"      :-1,
+                    "Very Poor" :-2,}
+    else:
+        score_map = {                
+                    'A'         : 2,
+                    'B'         : 1,
+                    'C'         : 0,
+                    'D'         : -2,
+                    'E'         : -2}
+
+          
+    variable_order_map = {}
+    for variable_j in my_data['attribute'].unique():
+        filtered_mysite =   my_data.loc[(my_data['attribute'] == variable_j)].reset_index(drop=True) 
+        filtered_mysite['scores'] = filtered_mysite['grade'].map(score_map) 
+        variable_order_map.update({variable_j:(filtered_mysite['percentage']*filtered_mysite['scores']).sum()})      
+    variable_order_map = {k: v for k, v in sorted(variable_order_map.items(), key=lambda item: item[1])}     
+    return list(variable_order_map.keys())
+
+def plot_spatial_grade_summary(data,topic='Rivers',date_range = '',spatial_region = '', extra_title_info = '', sort_by_best_grade = False):
+    copydata = copy.deepcopy(data)
+    col_left0,_,col_right0,_ = st.columns([4,1,4,3])
+    with col_left0:
+        figure_height = st.slider('If needed, adjust the **height** of the graph using this slider', 0, 1000, 700, key = 'slider_spatial_grade')
+    with col_right0:
+        figure_width = st.slider('If needed, adjust the **width** of the graph using this slider', 0, 1200, 700, key = 'slider_spatial_grade_width')    
+
+
+    if topic == 'Contact_Recreation':
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in contact_rec_grades}
+        copydata = copydata.loc[copydata['attribute type'] == 'E. coli (Primary Contact)'].reset_index(drop=True)
+    else:
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in river_grades}
+
+    #add grade colours
+    copydata['grade_colours'] = copydata["NOF_Grade"].map(st.session_state['colourblind_colours'])
+
+    percentages,attribute_site_number = percentage(copydata)
+    if sort_by_best_grade:
+        scores = order_variables_by_goodness(percentages,topic)
+    else:
+        scores = sorted(list(percentages['attribute'].unique()))
+
+    fig = px.bar(percentages, x="attribute", y="percentage", color="grade",color_discrete_map = st.session_state['colourblind_colours'],
+    category_orders = {"grade":st.session_state['colourblind_colours'].keys(),
+                        "attribute":scores},
+    title = f"NOF Grade summary: <br>{spatial_region} - {topic} {extra_title_info} <br>{date_range}", 
+    height = figure_height,
+    width = figure_width,
+        )  
+
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    
+    for trace in fig.data:
+        trace.showlegend = False   
+
+    #add traces for new legend
+    for key_j,value_j in grades.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                   marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                   color=value_j, 
+                                   symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)  
+
+    #add text
+    for key_p,value_p in attribute_site_number.items():
+        fig.add_annotation(
+        x=key_p,
+        y=105,
+        text=value_p,
+        showarrow=False
+        )
+    fig.update_layout(
+    title={'y':0.975},)     
+    fig.update_layout(yaxis_title='Percentage')
+    fig.update_layout(xaxis_title='')  
+
+    fig.update_layout(
+    font=dict(
+        size=st.session_state['settings'].get('plot_settings').get('figure_font_size'),
+    ))
+    fig.update_layout(legend_title_text='')
+    return fig    
+
+################################################################################
+################################################################################
+################################################################################
+def order_trend_variables_by_goodness(data,topic):
+    my_data = copy.deepcopy(data)
+    score_map = {                
+                "Virtually certain improving"          : 4,
+                "Extremely likely improving"           : 3,
+                "Very likely improving"                : 2,
+                "Likely improving"                     : 1,
+                "As likely as not improving"           : 0,
+                "Unlikely improving"                   : -1,
+                "Very unlikely improving"              : -2,
+                "Extremely unlikely improving"         : -3,
+                "Exceptionally unlikely improving"     : -4,
+                #
+                "Virtually certain increasing"          : 4,
+                "Extremely likely increasing"           : 3,
+                "Very likely increasing"                : 2,
+                "Likely increasing"                     : 1,
+                "As likely as not increasing"           : 0,
+                "Unlikely increasing"                   : -1,
+                "Very unlikely increasing"              : -2,
+                "Extremely unlikely increasing"         : -3,
+                "Exceptionally unlikely increasing"     : -4,
+                'Not Analysed'               : 0,
+                }
+
+          
+    variable_order_map = {}
+    for variable_j in my_data['attribute'].unique():
+        filtered_mysite =   my_data.loc[(my_data['attribute'] == variable_j)].reset_index(drop=True) 
+        filtered_mysite['scores'] = filtered_mysite['grade'].map(score_map) 
+        variable_order_map.update({variable_j:(filtered_mysite['percentage']*filtered_mysite['scores']).sum()})      
+    variable_order_map = {k: v for k, v in sorted(variable_order_map.items(), key=lambda item: item[1])}     
+    return list(variable_order_map.keys())
+
+def plot_spatial_trend_summary(data,topic='Rivers',date_range = '',spatial_region = '', extra_title_info = '', sort_by_best_trend=False):
+    copydata = copy.deepcopy(data)
+    col_left1,_,col_right1,_ = st.columns([4,1,4,3])
+    with col_left1:
+        figure_height = st.slider('If needed, adjust the **height** of the graph using this slider', 0, 1000, 700, key = 'slider_spatial_trend')
+    with col_right1:
+        figure_width = st.slider('If needed, adjust the **width** of the graph using this slider', 0, 1200, 700, key = 'slider_spatial_trend_width') 
+
+
+
+    if topic == 'Contact_Recreation':
+        grades = {x:y for x,y in st.session_state['settings'].get('trend_colours').items() if x in contact_rec_grades}
+        copydata = copydata.loc[copydata['parameter name'] == 'E. coli'].reset_index(drop=True)
+    else:
+        grades = {x:y for x,y in st.session_state['settings'].get('trend_colours').items() if x in river_grades}
+
+    #add grade colours
+    copydata['grade_colours'] = copydata["confidence of improving trend"].map(st.session_state['settings'].get('trend_colours'))
+
+    percentages,attribute_site_number = percentage(copydata,classification = 'confidence of improving trend', attribute = 'parameter name', colourmap = st.session_state['settings'].get('trend_colours'))
+    if sort_by_best_trend:
+        scores = order_trend_variables_by_goodness(percentages,topic)
+    else:
+        scores = sorted(list(percentages['attribute'].unique()))
+
+    fig = px.bar(percentages, x="attribute", y="percentage", color="grade",color_discrete_map = st.session_state['settings'].get('trend_colours'),
+    category_orders = {"grade":st.session_state['settings'].get('trend_colours').keys(),
+                    "attribute":scores},
+    title = f"Trend summary: <br>{spatial_region} - {topic} {extra_title_info} <br>{date_range}", 
+    height = figure_height,
+    width = figure_width,
+        )  
+ 
+
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    
+    for trace in fig.data:
+        trace.showlegend = False   
+
+    #add traces for new legend
+    traces_to_include = {x+'/increasing':y for x,y in st.session_state['settings'].get('trend_colours').items() if 'improving' in x}
+    for key_j,value_j in traces_to_include.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                   marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                   color=value_j, 
+                                   symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)  
+
+    #add text
+    for key_p,value_p in attribute_site_number.items():
+        fig.add_annotation(
+        x=key_p,
+        y=105,
+        text=value_p,
+        showarrow=False
+        )
+    fig.update_layout(
+    title={'y':0.975},)     
+    fig.update_layout(yaxis_title='Percentage')
+    fig.update_layout(xaxis_title='')  
+
+    fig.update_layout(
+    font=dict(
+        size=st.session_state['settings'].get('plot_settings').get('figure_font_size'),
+    ))
+    fig.update_layout(legend_title_text='')
+    return fig   
+###################
+################################################################################
+################################################################################
+################################################################################
+
+def plot_spatial_grade_summary_over_time(data,topic='Rivers',attribute = '',spatial_region = '',extra_title_info = ''):
+    copydata = copy.deepcopy(data)
+    col_left2,_,col_right2,_ = st.columns([4,1,4,3])
+    with col_left2:
+        figure_height = st.slider('If needed, adjust the **height** of the graph using this slider', 0, 1000, 700, key = 'slider_spatial_grade_over_time')
+    with col_right2:
+        figure_width = st.slider('If needed, adjust the **width** of the graph using this slider', 0, 1200, 700, key = 'slider_spatial_grade_over_time_width') 
+
+
+    if topic == 'Contact_Recreation':
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in contact_rec_grades}
+    else:
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in river_grades}
+
+    #add grade colours
+    copydata['grade_colours'] = copydata["NOF_Grade"].map(st.session_state['colourblind_colours'])
+
+    percentages,attribute_site_number = percentage_over_time(copydata)
+    fig = px.bar(percentages, x="year range", y="percentage", color="grade",
+    color_discrete_map = st.session_state['colourblind_colours'],
+    category_orders = {"grade":st.session_state['colourblind_colours'].keys(),
+                        "year range" : sorted(list(copydata['year range'].unique()))
+                        },
+                        title = f"NOF Grade summary over time: <br>{spatial_region} - {topic} {extra_title_info} <br>{attribute}", 
+                        height = figure_height,
+                        width = figure_width,
+                        )  
+
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    fig.update_layout(yaxis_title='Percentage')
+    fig.update_layout(xaxis_title='')   
+
+    for trace in fig.data:
+        trace.showlegend = False   
+
+    #add traces for new legend
+    for key_j,value_j in grades.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                   marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                   color=value_j, 
+                                   symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)  
+
+    #add text
+    for key_p,value_p in attribute_site_number.items():
+        fig.add_annotation(
+        x=key_p,
+        y=105,
+        text=value_p,
+        showarrow=False
+        )
+
+    fig.update_layout(
+    title={'y':0.975},)    
+    fig.update_layout(
+    font=dict(
+        size=st.session_state['settings'].get('plot_settings').get('figure_font_size'),
+    ))     
+
+    fig.update_layout(legend_title_text='')                       
+     
+
+    return fig   
+
+###################
+###################
+###################
+def order_sites_by_goodness(data,topic):
+    my_data = copy.deepcopy(data)
+    if topic == 'Contact_Recreation':
+         score_map = {"Very Good":2,
+                    "Good"      :1,
+                    "Fair"      :0,
+                    "Poor"      :-1,
+                    "Very Poor" :-2,}
+    else:
+        score_map = {                
+                    'A'         : 2,
+                    'B'         : 1,
+                    'C'         : 0,
+                    'D'         : -2,
+                    'E'         : -2}
+    site_order_map = {}
+    for site_j in my_data['site name'].unique():
+        filtered_mysite =   my_data.loc[my_data['site name'] == site_j].reset_index(drop=True)
+        filtered_mysite['scores'] = filtered_mysite['NOF_Grade'].map(score_map)   
+        site_order_map.update({site_j:filtered_mysite['scores'].sum()})      
+    site_order_map = {k: v for k, v in sorted(site_order_map.items(), key=lambda item: item[1])}     
+    return list(site_order_map.keys())
+
+  
+
+
+
+###################
+###################
+###################
+
+
+
+
+
+
+
+
+
+
+def plot_site_grades(data,topic='Rivers',date_range = '',spatial_region = '',extra_title_info = '', sort_by_grades = False):
+    col_left3,_,col_right3,_ = st.columns([4,1,4,3])
+    with col_left3:
+        figure_height = st.slider('If needed, adjust the **height** of the graph using this slider', 0, 3500, 800, key = 'slider_site_grades')
+    with col_right3:
+        figure_width = st.slider('If needed, adjust the **width** of the graph using this slider', 0, 1200, 700, key = 'slider_site_grades_width') 
+
+    copydata = copy.deepcopy(data)
+    copydata = copydata.loc[~copydata['NOF_Grade'].isnull()].reset_index(drop=True)
+    if topic == 'Contact_Recreation':
+        #define contact rec grades and display text
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in contact_rec_grades}
+        copydata = copydata.loc[copydata['attribute type'] == 'E. coli (Primary Contact)'].reset_index(drop=True)
+        copydata['display_text'] = ''
+    else:
+        #define grades and display text
+        grades = {x:y for x,y in st.session_state['colourblind_colours'].items() if x in river_grades}
+        copydata['display_text'] = copydata['NOF_Grade']
+    
+    if not sort_by_grades:
+        site_order =    sorted(list(copydata['site name'].unique() ))
+    else:
+        site_order = order_sites_by_goodness(copydata,topic)        
+    
+    #plot figure
+    fig = px.scatter(copydata, x="attribute type", y="site name", color="NOF_Grade",text = 'display_text',
+    color_discrete_map = st.session_state['colourblind_colours'],
+    category_orders = {"grade":st.session_state['colourblind_colours'].keys(),
+                        "site name":site_order,
+                        "attribute type": sorted(list(copydata["attribute type"].unique()))},
+    title = f"NOF site grades: <br>{spatial_region} - {topic} {extra_title_info} <br>{date_range}", 
+    #height= max(int(ceil(700*(len(list(set(copydata["site name"].unique())))/20))),500),
+    height = figure_height,
+    width = figure_width,
+    size = [st.session_state['settings'].get('plot_settings').get('plot_marker_size')]*len(copydata),
+    symbol =[st.session_state['settings'].get('plot_settings').get('basic_marker_shape')]*len(copydata),
+        )  
+ 
+    #change visual plot settings
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    
+    #turn off legend for all traces
+    for trace in fig.data:
+        trace.showlegend = False   
+
+    #add traces for new legend
+    for key_j,value_j in grades.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                   marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                   color=value_j, 
+                                   symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)    
+
+
+    fig.update_layout(
+    title={'y':0.975},)     
+    fig.update_layout(xaxis_title='')  
+
+    fig.update_layout(
+    font=dict(
+        size=st.session_state['settings'].get('plot_settings').get('figure_font_size'),
+    ))
+
+    fig.update_layout(legend_title_text='')
+    fig.update_layout(margin_pad=0)
+                                
+     
+
+    return fig  
+
+
+
+
+
+
+def order_sites_by_trend_goodness(data):
+    my_data = copy.deepcopy(data)
+    score_map = {                
+                "Virtually certain improving"          : 4,
+                "Extremely likely improving"           : 3,
+                "Very likely improving"                : 2,
+                "Likely improving"                     : 1,
+                "As likely as not improving"           : 0,
+                "Unlikely improving"                   : -1,
+                "Very unlikely improving"              : -2,
+                "Extremely unlikely improving"         : -3,
+                "Exceptionally unlikely improving"     : -4,
+                #
+                "Virtually certain increasing"          : 4,
+                "Extremely likely increasing"           : 3,
+                "Very likely increasing"                : 2,
+                "Likely increasing"                     : 1,
+                "As likely as not increasing"           : 0,
+                "Unlikely increasing"                   : -1,
+                "Very unlikely increasing"              : -2,
+                "Extremely unlikely increasing"         : -3,
+                "Exceptionally unlikely increasing"     : -4,
+                'Not Analysed'               : 0,
+                }
+    site_order_map = {}
+    for site_j in my_data['site name'].unique():
+        filtered_mysite =   my_data.loc[my_data['site name'] == site_j].reset_index(drop=True)
+        filtered_mysite['scores'] = filtered_mysite['confidence of improving trend'].map(score_map)   
+        site_order_map.update({site_j:filtered_mysite['scores'].sum()})      
+    site_order_map = {k: v for k, v in sorted(site_order_map.items(), key=lambda item: item[1])}     
+    return list(site_order_map.keys())  
+
+
+
+def plot_site_trends(data,topic='Rivers',date_range = '',spatial_region = '',extra_title_info = '', sort_by_trend = False):
+    col_left3,_,col_right3,_ = st.columns([4,1,4,3])
+    with col_left3:
+        figure_height = st.slider('If needed, adjust the **height** of the graph using this slider', 0, 3500, 800, key = 'slider_site_trends')
+    with col_right3:
+        figure_width = st.slider('If needed, adjust the **width** of the graph using this slider', 0, 1200, 700, key = 'slider_site_trends_width') 
+
+    copydata = copy.deepcopy(data)
+    copydata = copydata.loc[~copydata['confidence of improving trend'].isnull()].reset_index(drop=True)
+    #define grades and display text
+    grades = st.session_state['settings'].get('trend_colours')
+    #copydata['display_text'] = copydata['confidence of improving trend']
+    copydata['display_text'] = ''
+    
+    if not sort_by_trend:
+        site_order =    sorted(list(copydata['site name'].unique() ))
+    else:
+        site_order = order_sites_by_trend_goodness(copydata)        
+    
+    #plot figure
+    fig = px.scatter(copydata, x="parameter name", y="site name", color="confidence of improving trend",text = 'display_text',
+    color_discrete_map = st.session_state['settings'].get('trend_colours'),
+    category_orders = {"grade":st.session_state['settings'].get('trend_colours').keys(),
+                        "site name":site_order,
+                        "parameter name": sorted(list(copydata["parameter name"].unique()))},
+    title = f"Site trends: <br>{spatial_region} - {topic} {extra_title_info} <br>{date_range}", 
+    #height= max(int(ceil(700*(len(list(set(copydata["site name"].unique())))/20))),500),
+    height = figure_height,
+    width = figure_width,
+    size = [st.session_state['settings'].get('plot_settings').get('plot_marker_size')]*len(copydata),
+    symbol =[st.session_state['settings'].get('plot_settings').get('basic_marker_shape')]*len(copydata),
+        )  
+ 
+    #change visual plot settings
+    fig.update_layout(plot_bgcolor=st.session_state['settings'].get('plot_settings').get('bgcolour'))
+    fig.update_yaxes(showgrid=st.session_state['settings'].get('plot_settings').get('showgrid'), 
+        gridwidth=st.session_state['settings'].get('plot_settings').get('gridwidth'), 
+        gridcolor=st.session_state['settings'].get('plot_settings').get('gridcolor'))
+    
+    for trace in fig.data:
+        trace.showlegend = False
+
+    traces_to_include = {x+'/increasing':y for x,y in st.session_state['settings'].get('trend_colours').items() if 'improving' in x}
+    #add traces for legend
+    for key_j,value_j in traces_to_include.items():
+        fig.add_trace(go.Scatter(x=[None],y=[None],mode="markers",name=key_j,
+                                    marker=dict(size=st.session_state['settings'].get('plot_settings').get('legend_marker_size'), 
+                                        color=value_j, 
+                                        symbol=st.session_state['settings'].get('plot_settings').get('basic_marker_shape')),),)    
+
+
+    fig.update_layout(
+    title={'y':0.975},)     
+    fig.update_layout(xaxis_title='')  
+
+    fig.update_layout(
+    font=dict(
+        size=st.session_state['settings'].get('plot_settings').get('figure_font_size'),
+    ))
+
+    fig.update_layout(legend_title_text='')
+    fig.update_layout(margin_pad=0)
+                                
+     
+
+    return fig      
+
+
+`,
+"pages/2_Lakes.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+import pandas as pd
+import datetime
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites, scatter_plot_2variables, time_series_scatter_plot, trend_classification_plot 
+
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:2rem;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
+
+############################################  
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox, load_log_checkbox_trend
+############################################
+###############################################################################
+############################################
+def choose_spatial_area():
+    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
+    spatial_user_choice = st.radio('How would you like to select your lake sites? By: ',['All sites'] + spatial_area_names)
+    return spatial_user_choice
+############################################
+def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
+    sub_spatial_user_choice = st.selectbox(f'Please select a {spatial_user_choice}: ',['Please select one'] + sub_spatial_areas)
+    return sub_spatial_user_choice    
+############################################
+def choose_site_of_interest(site_list):
+    site_user_choice = st.selectbox('Please select a site: ',['Please select one'] + site_list)
+    return site_user_choice        
+############################################
+def choose_coparison_site(site_list):
+    site2_user_choice = st.selectbox('Please select a second site: ',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
+    return site2_user_choice 
+############################################
+def choose_attribute(attribute_list,text = 'Please select an attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice  
+def choose_attribute_2(attribute_list,text = 'If desired, please select a second attribute to plot: '):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice     
+############################################
+def trend_period(period_list):
+    trend_user_choice = st.selectbox('Please select a trend period: ',['Please select one'] + [x for x in period_list])
+    return trend_user_choice 
+def choose_scatter_plotting_parameter(parameter_list):
+    parameter_user_choice = st.selectbox('Please select a parameter: ',['Please select one'] + [x for x in parameter_list])
+    return parameter_user_choice     
+############################################
+############################################
+############################################
+############################################
+############################################
+# main 
+#load sidebar image
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
+#load colourblind checkbox
+load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
+
+#load site list
+if st.session_state['current_page'] != 'Lakes':
+    url = st.session_state['settings'].get('pages').get('Lakes')
+    sites = await load_url(url,text=True)
+    st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
+    
+#update current page
+st.session_state['current_page'] = 'Lakes'
+
+#clear some variabls from session state
+clear_session_state_list = ['site2_user_choice','site2_data']
+for variable_j in clear_session_state_list:
+    st.session_state[variable_j] = None
+false_session_state_variables = ['second_site','reverse_2nd_axis']
+for variable_j in false_session_state_variables:
+    st.session_state[variable_j] = False
+
+#write intro message
+st.write('---')
+st.write("**Welcome** to the lakes state results.") 
+st.write(f"State and trend analyis is current for data up to **{st.session_state['settings'].get('final_date')}**") 
+st.write('---')
+
+#choose spatial area
+spatial_user_choice = choose_spatial_area()
+st.write('---')
+if spatial_user_choice == 'All sites':
+    sub_spatial_user_choice = 'N/A'
+    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
+else:
+    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
+    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
+    if sub_spatial_user_choice != 'Please select one':
+        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
+
+# choose site of interest    
+if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
+    st.session_state['site_user_choice']  =  choose_site_of_interest(st.session_state['filtered_sites']) 
+    st.write('---')  
+
+# display state and raw data link     
+if st.session_state['site_user_choice'] not in [None,'Please select one']:
+    st.subheader('Data downloads')
+    state_data_link,raw_data_link, trend_data_link  =  get_data_links(topic = 'Lakes')
+
+    #try to get trend data for this site
+    try:
+        trend_data_in_bytes = await load_url(trend_data_link,text=False)
+        try:
+            st.session_state['site_trend_data'] = pd.read_csv(BytesIO(trend_data_in_bytes))
+        except:st.session_state['site_trend_data'] = pd.read_excel(BytesIO(trend_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_trend_data'] = None
+
+    #try to get raw data for this site
+    try:
+        raw_data_in_bytes = await load_url(raw_data_link,text=False)
+        try:
+            st.session_state['site_raw_data'] = pd.read_csv(BytesIO(raw_data_in_bytes))
+        except:st.session_state['site_raw_data'] = pd.read_excel(BytesIO(raw_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_raw_data'] = None    
+
+    col1,col2 = st.columns(2)
+    with col1:
+        place_holder_1 = st.empty()
+        place_holder_trend = st.empty()
+        place_holder_3 = st.empty()
+        
+        place_holder_1.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
+        if st.session_state['site_trend_data'] is not None:
+            place_holder_trend.write(f"|--Download **TREND** data for [**{st.session_state['site_user_choice']}**]({trend_data_link})--|")
+        else:
+            place_holder_trend.write(f"|--NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}--|")
+        place_holder_3.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
+    st.write('---')    
+ 
+    #load site data
+    if st.session_state['current_site'] != st.session_state['site_user_choice']:
+        url = state_data_link
+        site_data_in_bytes = await load_url(url,text=False)
+        try:st.session_state['current_site_data'] = pd.read_csv(BytesIO(site_data_in_bytes))
+        except:st.session_state['current_site_data'] = pd.read_excel(BytesIO(site_data_in_bytes))
+        st.session_state['current_site'] = st.session_state['site_user_choice']
+        
+
+st.markdown("""
+        <style>
+                .stPlotlyChart {
+                    height: 90vh !important;
+                            }
+        </style>
+        """, unsafe_allow_html=True)    
+
+
+if (st.session_state['plot_mode']) or (st.session_state['data_table_mode']):
+    tab1, tab2 = st.tabs(["**State figures**", " **Trend figures** "])
+    with tab1:
+        #THIS TAB DISPLAYS STATE RESULTS
+        #plot grade_time_plot
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
+            col_0,col_1 = st.columns(2)
+            col_0.write('**NOF grades over time**')
+            with col_1:
+                load_second_site_checkbox()
+
+            if st.session_state['second_site']:
+                with col_1:
+                    st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
+                    if st.session_state['site2_user_choice'] != 'Please select one':
+                        state2_data_link,raw2_data_link,trend_2_data_link  =  get_data_links(topic = 'Lakes', site2 = True)
+                        url = state2_data_link
+                        site2_data_in_bytes = await load_url(url,text=False)
+                        try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
+                        except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
+                with col_1:
+                    place_holder_4 = st.empty()
+                    place_holder_trend_site2 = st.empty()
+                    place_holder_6 = st.empty()
+                    if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                        place_holder_4.write(f'''
+            |--Download **STATE** data for [**{st.session_state['site2_user_choice']}**]({state2_data_link})--|            
+                        ''')
+                        place_holder_trend_site2.write(f'''
+            |--Download **TREND** data for [**{st.session_state['site2_user_choice']}**]({trend_2_data_link})--|
+                        ''')            
+                        place_holder_6.write(f'''
+            |--Download **RAW** data for [**{st.session_state['site2_user_choice']}**]({raw2_data_link})--|
+                        ''')            
+                with col_1:
+                    load_reverse_second_axis_checkbox()
+                st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
+                            st.session_state['site2_data'],
+                            topic='Lakes'),
+                            use_container_width = True)   
+                
+                
+                if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site_user_choice"]}: ' )
+                    user_attribute_site_2 = choose_attribute(sorted(list(st.session_state['site2_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site2_user_choice"]}: ' )
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Lakes', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)  
+                    if (user_attribute in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute_site_2, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Lakes', sitename = st.session_state['site2_user_choice'], markersymbol = 'triangle-down'),
+                            use_container_width = True)                 
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):   
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2_sites(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True),st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute, user_attribute_site_2, 
+                            data_column0 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute), data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Lakes', 
+                            sitename0 = st.session_state['site_user_choice'], sitename1 = st.session_state['site2_user_choice']),
+                            use_container_width = True)          
+
+            
+            else:
+                c0,c1,c2 = st.columns([1,8,1])
+                c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Lakes'),
+                                use_container_width = True)        
+                c0.write('---')
+                c1.write('---')
+                c2.write('---')
+
+
+                with c1:
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
+                    user_attribute_2 = choose_attribute_2(sorted(list([x for x in st.session_state['current_site_data']['attribute type'].unique() if x != user_attribute])))
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Lakes', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 not in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2variables(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'].isin([user_attribute,user_attribute_2])].reset_index(drop=True), 
+                            user_attribute,user_attribute_2, 
+                            data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),
+                            data_column2 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_2),
+                            topic='Lakes', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)         
+            st.write('---')
+
+
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['current_site_data'],
+                        hide_index=True)
+
+            if st.session_state['site2_data'] is not None:  
+                st.subheader(f'Data table: {st.session_state["site2_user_choice"]}')
+                st.dataframe(st.session_state['site2_data'],
+                            hide_index=True)      
+
+
+    with tab2:
+        #THIS TAB DISPLAYS TREND RESULTS                    
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode'] & (st.session_state['site_raw_data'] is not None)):
+            st.write('---')
+            with st.expander("Trend classifications (click to expand)"):   
+                if st.session_state['site_trend_data'] is not None:
+                    st.plotly_chart(trend_classification_plot(st.session_state['site_trend_data'],topic='Lakes',marker = 'square'),
+                                    use_container_width = False) 
+                else: st.write(f"NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}")
+            
+            ########################################################################################
+            ########################################################################################
+            ########################################################################################
+            with st.expander("Data scatterplot (click to expand)"):  
+                user_scatter_parameter = choose_scatter_plotting_parameter(sorted(list(st.session_state['site_raw_data']['parameter name'].unique())))
+                if st.session_state['site_trend_data'] is not None:
+                    if user_scatter_parameter != 'Please select one':
+                        if user_scatter_parameter == 'Ammoniacal Nitrogen (NH4)':
+                            st.warning('**PLEASE NOTE:** Ammoniacal Nitrogen displayed below is the measured value, it is NOT adjusted for pH.')
+                        temp_scatter_data = st.session_state['site_raw_data'].loc[st.session_state['site_raw_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                        date_list     = []
+                        data_list     = []
+                        data_list_lci = []
+                        data_list_uci = []
+                        confidence_statement = ''
+                        #if there is a trend, plot it here
+                        if st.session_state['site_trend_data'] is not None:
+                            temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                            #temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['variable'] == user_scatter_parameter].reset_index(drop=True)
+                            if len(temp_scatter_trend)>0:
+                                user_trend_period = trend_period(sorted(list(temp_scatter_trend["trend period"].unique())))
+                                if user_trend_period != 'Please select one':
+                                    st.session_state['include_trend_scatter'] = True
+                                    temp_scatter_trend_year = temp_scatter_trend.loc[temp_scatter_trend['trend period'] == user_trend_period].reset_index(drop=True)
+                                    start_date = datetime.datetime.strptime(st.session_state['settings'].get('final_date'), '%d/%m/%Y') 
+                                    date_list = [start_date - (datetime.timedelta(days=round(user_trend_period*365))),
+                                    start_date - datetime.timedelta(days=round(user_trend_period/2*365)),
+                                    start_date]
+
+                                    median_value = temp_scatter_trend_year['median value for the trend period'].values[-1]
+                                    sen_slope = temp_scatter_trend_year['annual Sen slope (attribute units/year)'].values[-1]
+                                    sen_slope_lci = temp_scatter_trend_year['lower confidence interval for annual Sen slope'].values[-1]
+                                    sen_slope_uci = temp_scatter_trend_year['upper confidence interval for annual Sen slope'].values[-1]
+                                    confidence_statement = temp_scatter_trend_year['confidence of improving trend'].values[-1]
+                                    analysis_note = temp_scatter_trend_year['analysis note'].values[-1]
+                                    if 'warning' in analysis_note.lower():
+                                        st.warning(f"{analysis_note}")
+                                    
+                                    data_list = [
+                                        median_value - sen_slope*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope*(user_trend_period/2),
+                                    ]
+
+                                    data_list_lci = [
+                                        median_value - sen_slope_lci*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope_lci*(user_trend_period/2),
+                                    ]
+
+                                    data_list_uci = [
+                                        median_value - sen_slope_uci*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope_uci*(user_trend_period/2),
+                                    ]
+                                    
+                            else:
+                                st.write('No trend data at this site for this parameter')   
+                                st.session_state['include_trend_scatter'] = False 
+                        else:
+                            st.write('No trend data at this site')   
+                            st.session_state['include_trend_scatter'] = False     
+
+                        load_log_checkbox_trend() 
+                        #plot scatterplot here
+                        st.plotly_chart(time_series_scatter_plot(temp_scatter_data, user_scatter_parameter, temp_scatter_data['Unit'].values[-1],user_trend_period,trend_text = confidence_statement, data_column = 'Value', date_column = 'date time',topic='Lakes', sitename = st.session_state['current_site'], markersymbol = 'triangle-up',censored_markersymbol = 'hexagon2', marker_colour = '#86dcd5',censored_marker_colour = '#fa6e75', plot_trend=st.session_state['include_trend_scatter'], 
+                        trend_dates = date_list, trend_data = data_list, trend_lci = data_list_lci, trend_uci = data_list_uci),
+                                        use_container_width = True) 
+                else:  st.write(f"|--NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}--|")                      
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['site_trend_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['site_trend_data'],
+                        hide_index=True)                                    `,
+"pages/3_Contact_Recreation.py": `import streamlit as st
+import json
+import pyodide.http
+from PIL import Image
+from io import BytesIO
+import pandas as pd
+import datetime
+from plotting_functions import grade_time_plot, grade_time_plot_2_sites, scatter_plot, scatter_plot_2_sites, scatter_plot_2variables, time_series_scatter_plot, trend_classification_plot 
+
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:2rem;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
+
+############################################  
+from functions import load_url,clean_text,get_data_links,load_colourblind_checkbox, load_plotting_checkbox, load_datatable_checkbox, load_second_site_checkbox, load_reverse_second_axis_checkbox, load_log_checkbox, load_log_checkbox_trend
+############################################
+###############################################################################
+############################################
+def choose_spatial_area():
+    spatial_area_names = list(list(st.session_state['site_list'].values())[0].keys())
+    spatial_user_choice = st.radio('How would you like to select your contact recreation sites? By: ',['All sites'] + spatial_area_names)
+    return spatial_user_choice
+############################################
+def choose_sub_spatial_area(spatial_user_choice,sub_spatial_areas):
+    sub_spatial_user_choice = st.selectbox(f'Please select a {spatial_user_choice}:',['Please select one'] + sub_spatial_areas)
+    return sub_spatial_user_choice    
+############################################
+def choose_site_of_interest(site_list):
+    site_user_choice = st.selectbox('Please select a site:',['Please select one'] + site_list)
+    return site_user_choice        
+############################################
+def choose_coparison_site(site_list):
+    site2_user_choice = st.selectbox('Please select a second site:',['Please select one'] + [x for x in site_list if x != st.session_state['site_user_choice']])
+    return site2_user_choice 
+############################################
+def choose_attribute(attribute_list,text = 'Please select an attribute to plot:'):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice  
+def choose_attribute_2(attribute_list,text = 'If desired, please select a second attribute to plot:'):
+    attribute_user_choice = st.selectbox(text,['Please select one'] + attribute_list)
+    return attribute_user_choice     
+############################################
+def trend_period(period_list):
+    trend_user_choice = st.selectbox('Please select a trend period:',['Please select one'] + [x for x in period_list])
+    return trend_user_choice 
+def choose_scatter_plotting_parameter(parameter_list):
+    parameter_user_choice = st.selectbox('Please select a parameter:',['Please select one'] + [x for x in parameter_list])
+    return parameter_user_choice     
+############################################
+############################################
+############################################
+############################################
+############################################
+# main 
+#load sidebar image
+st.sidebar.image(Image.open(BytesIO(st.session_state['sidebar_image'])))
+#load colourblind checkbox
+load_colourblind_checkbox()
+#load plotting checkbox
+load_plotting_checkbox()
+#load datatable checkbox
+load_datatable_checkbox()
+
+#load site list
+if st.session_state['current_page'] != 'Contact_Recreation':
+    url = st.session_state['settings'].get('pages').get('Contact_Recreation')
+    sites = await load_url(url,text=True)
+    st.session_state['site_list'] = json.loads(sites.encode().decode('utf-8-sig'))
+    
+#update current page
+st.session_state['current_page'] = 'Contact_Recreation'
+
+#clear some variabls from session state
+clear_session_state_list = ['site2_user_choice','site2_data']
+for variable_j in clear_session_state_list:
+    st.session_state[variable_j] = None
+false_session_state_variables = ['second_site','reverse_2nd_axis']
+for variable_j in false_session_state_variables:
+    st.session_state[variable_j] = False
+
+#write intro message
+st.write('---')
+st.write("**Welcome** to the contact recreation state results.") 
+st.write(f"State and trend analyis is current for data up to **{st.session_state['settings'].get('final_date')}**") 
+st.write('---')
+
+#choose spatial area
+spatial_user_choice = choose_spatial_area()
+st.write('---')
+if spatial_user_choice == 'All sites':
+    sub_spatial_user_choice = 'N/A'
+    st.session_state['filtered_sites'] = sorted(list(st.session_state['site_list'].keys()))
+else:
+    sub_regions = sorted(list(set([x.get(spatial_user_choice) for x in st.session_state['site_list'].values()])))
+    sub_spatial_user_choice = choose_sub_spatial_area(spatial_user_choice,sub_regions)
+    if sub_spatial_user_choice != 'Please select one':
+        st.session_state['filtered_sites'] = sorted([x for x in st.session_state['site_list'].keys() if st.session_state['site_list'].get(x).get(spatial_user_choice) == sub_spatial_user_choice])
+
+# choose site of interest    
+if (st.session_state['filtered_sites'] is not None) and (sub_spatial_user_choice != 'Please select one'):
+    st.session_state['site_user_choice']  =  choose_site_of_interest(st.session_state['filtered_sites']) 
+    st.write('---')  
+
+# display state and raw data link     
+if st.session_state['site_user_choice'] not in [None,'Please select one']:
+    st.subheader('Data downloads')
+    state_data_link,raw_data_link, trend_data_link  =  get_data_links(topic = 'Contact_Recreation')
+
+    #try to get trend data for this site
+    try:
+        trend_data_in_bytes = await load_url(trend_data_link,text=False)
+        try:
+            st.session_state['site_trend_data'] = pd.read_csv(BytesIO(trend_data_in_bytes))
+        except:st.session_state['site_trend_data'] = pd.read_excel(BytesIO(trend_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_trend_data'] = None
+
+    #try to get raw data for this site
+    try:
+        raw_data_in_bytes = await load_url(raw_data_link,text=False)
+        try:
+            st.session_state['site_raw_data'] = pd.read_csv(BytesIO(raw_data_in_bytes))
+        except:st.session_state['site_raw_data'] = pd.read_excel(BytesIO(raw_data_in_bytes))
+    except Exception as e:     
+        st.session_state['site_raw_data'] = None    
+
+    col1,col2 = st.columns(2)
+    with col1:
+        place_holder_1 = st.empty()
+        place_holder_trend = st.empty()
+        place_holder_3 = st.empty()
+        
+        place_holder_1.write(f"|--Download **STATE** data for [**{st.session_state['site_user_choice']}**]({state_data_link})--|")
+        if st.session_state['site_trend_data'] is not None:
+            place_holder_trend.write(f"|--Download **TREND** data for [**{st.session_state['site_user_choice']}**]({trend_data_link})--|")
+        else:
+            place_holder_trend.write(f"|--NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}--|")
+        place_holder_3.write(f"|--Download **RAW** data for [**{st.session_state['site_user_choice']}**]({raw_data_link})--|")
+    st.write('---')    
+ 
+    #load site data
+    if st.session_state['current_site'] != st.session_state['site_user_choice']:
+        url = state_data_link
+        site_data_in_bytes = await load_url(url,text=False)
+        try:st.session_state['current_site_data'] = pd.read_csv(BytesIO(site_data_in_bytes))
+        except:st.session_state['current_site_data'] = pd.read_excel(BytesIO(site_data_in_bytes))
+        st.session_state['current_site'] = st.session_state['site_user_choice']
+        
+
+st.markdown("""
+        <style>
+                .stPlotlyChart {
+                    height: 90vh !important;
+                            }
+        </style>
+        """, unsafe_allow_html=True)    
+
+
+if (st.session_state['plot_mode']) or (st.session_state['data_table_mode']):
+    tab1, tab2, tab3 = st.tabs(["**State figures** ", " **Trend figures**", "**Swimmability**"])
+    with tab1:
+        #THIS TAB DISPLAYS STATE RESULTS
+        #plot grade_time_plot
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode']):
+            col_0,col_1 = st.columns(2)
+            col_0.write('**NOF grades over time**')
+            with col_1:
+                load_second_site_checkbox()
+
+            if st.session_state['second_site']:
+                with col_1:
+                    st.session_state['site2_user_choice']  = choose_coparison_site(st.session_state['filtered_sites'])
+                    if st.session_state['site2_user_choice'] != 'Please select one':
+                        state2_data_link,raw2_data_link,trend_2_data_link  =  get_data_links(topic = 'Contact_Recreation', site2 = True)
+                        url = state2_data_link
+                        site2_data_in_bytes = await load_url(url,text=False)
+                        try:st.session_state['site2_data'] = pd.read_csv(BytesIO(site2_data_in_bytes))
+                        except:st.session_state['site2_data'] = pd.read_excel(BytesIO(site2_data_in_bytes))
+                with col_1:
+                    place_holder_4 = st.empty()
+                    place_holder_trend_site2 = st.empty()
+                    place_holder_6 = st.empty()
+                    if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                        place_holder_4.write(f'''
+            |--Download **STATE** data for [**{st.session_state['site2_user_choice']}**]({state2_data_link})--|            
+                        ''')
+                        place_holder_trend_site2.write(f'''
+            |--Download **TREND** data for [**{st.session_state['site2_user_choice']}**]({trend_2_data_link})--|
+                        ''')            
+                        place_holder_6.write(f'''
+            |--Download **RAW** data for [**{st.session_state['site2_user_choice']}**]({raw2_data_link})--|
+                        ''')            
+                with col_1:
+                    load_reverse_second_axis_checkbox()
+                st.plotly_chart(grade_time_plot_2_sites(st.session_state['current_site_data'],
+                            st.session_state['site2_data'],
+                            topic='Contact_Recreation'),
+                            use_container_width = True)   
+                
+                
+                if (st.session_state['site2_data'] is not None) and (st.session_state['site2_user_choice'] != 'Please select one'):
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site_user_choice"]}: ' )
+                    user_attribute_site_2 = choose_attribute(sorted(list(st.session_state['site2_data']['attribute type'].unique())),text = f'Please choose an attribute to plot at {st.session_state["site2_user_choice"]}: ' )
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Contact_Recreation', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)  
+                    if (user_attribute in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):       
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute_site_2, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Contact_Recreation', sitename = st.session_state['site2_user_choice'], markersymbol = 'triangle-down'),
+                            use_container_width = True)                 
+                    if (user_attribute not in [None,"Please select one"]) and (user_attribute_site_2 not in [None,"Please select one"]):   
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2_sites(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True),st.session_state['site2_data'].loc[st.session_state['site2_data']['attribute type'] == user_attribute_site_2].reset_index(drop=True), 
+                            user_attribute, user_attribute_site_2, 
+                            data_column0 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute), data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_site_2),topic='Contact_Recreation', 
+                            sitename0 = st.session_state['site_user_choice'], sitename1 = st.session_state['site2_user_choice']),
+                            use_container_width = True)          
+
+            
+            else:
+                c0,c1,c2 = st.columns([1,8,1])
+                c1.plotly_chart(grade_time_plot(st.session_state['current_site_data'],topic='Contact_Recreation'),
+                                use_container_width = True)        
+                c0.write('---')
+                c1.write('---')
+                c2.write('---')
+
+
+                with c1:
+                    st.write('**NOF Grade scatterplot**')
+                    user_attribute = choose_attribute(sorted(list(st.session_state['current_site_data']['attribute type'].unique())))
+                    user_attribute_2 = choose_attribute_2(sorted(list([x for x in st.session_state['current_site_data']['attribute type'].unique() if x != user_attribute])))
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'] == user_attribute].reset_index(drop=True), 
+                            user_attribute, data_column = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),topic='Contact_Recreation', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)
+                    if (user_attribute not in [None,"Please select one"]) & (user_attribute_2 not in [None,"Please select one"]):
+                        load_log_checkbox()
+                        st.plotly_chart(scatter_plot_2variables(st.session_state['current_site_data'].loc[st.session_state['current_site_data']['attribute type'].isin([user_attribute,user_attribute_2])].reset_index(drop=True), 
+                            user_attribute,user_attribute_2, 
+                            data_column1 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute),
+                            data_column2 = st.session_state['settings'].get('nof_attribute_statistics').get(user_attribute_2),
+                            topic='Contact_Recreation', sitename = st.session_state['site_user_choice']),
+                            use_container_width = True)         
+            st.write('---')
+
+
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['current_site_data'],
+                        hide_index=True)
+
+            if st.session_state['site2_data'] is not None:  
+                st.subheader(f'Data table: {st.session_state["site2_user_choice"]}')
+                st.dataframe(st.session_state['site2_data'],
+                            hide_index=True)      
+
+
+    with tab2:
+        #THIS TAB DISPLAYS TREND RESULTS                    
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['current_site_data'] is not None) & (st.session_state['plot_mode'] & (st.session_state['site_raw_data'] is not None)):
+            st.write('---')
+            with st.expander("Trend classifications (click to expand)"):   
+                if st.session_state['site_trend_data'] is not None:
+                    st.plotly_chart(trend_classification_plot(st.session_state['site_trend_data'],topic='Contact_Recreation',marker = 'square'),
+                                    use_container_width = False) 
+                else: st.write(f"NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}")
+            
+            ########################################################################################
+            ########################################################################################
+            ########################################################################################
+            with st.expander("Data scatterplot (click to expand)"):  
+                user_scatter_parameter = choose_scatter_plotting_parameter(sorted(list(st.session_state['site_raw_data']['parameter name'].unique())))
+                if st.session_state['site_trend_data'] is not None:
+                    if user_scatter_parameter != 'Please select one':
+                        if user_scatter_parameter == 'Ammoniacal Nitrogen (NH4)':
+                            st.warning('**PLEASE NOTE:** Ammoniacal Nitrogen displayed below is the measured value, it is NOT adjusted for pH.')
+                        temp_scatter_data = st.session_state['site_raw_data'].loc[st.session_state['site_raw_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                        date_list     = []
+                        data_list     = []
+                        data_list_lci = []
+                        data_list_uci = []
+                        confidence_statement = ''
+                        #if there is a trend, plot it here
+                        if st.session_state['site_trend_data'] is not None:
+                            temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['parameter name'] == user_scatter_parameter].reset_index(drop=True)
+                            #temp_scatter_trend = st.session_state['site_trend_data'].loc[st.session_state['site_trend_data']['variable'] == user_scatter_parameter].reset_index(drop=True)
+                            if len(temp_scatter_trend)>0:
+                                user_trend_period = trend_period(sorted(list(temp_scatter_trend["trend period"].unique())))
+                                if user_trend_period != 'Please select one':
+                                    st.session_state['include_trend_scatter'] = True
+                                    temp_scatter_trend_year = temp_scatter_trend.loc[temp_scatter_trend['trend period'] == user_trend_period].reset_index(drop=True)
+                                    start_date = datetime.datetime.strptime(st.session_state['settings'].get('final_date'), '%d/%m/%Y') 
+                                    date_list = [start_date - (datetime.timedelta(days=round(user_trend_period*365))),
+                                    start_date - datetime.timedelta(days=round(user_trend_period/2*365)),
+                                    start_date]
+
+                                    median_value = temp_scatter_trend_year['median value for the trend period'].values[-1]
+                                    sen_slope = temp_scatter_trend_year['annual Sen slope (attribute units/year)'].values[-1]
+                                    sen_slope_lci = temp_scatter_trend_year['lower confidence interval for annual Sen slope'].values[-1]
+                                    sen_slope_uci = temp_scatter_trend_year['upper confidence interval for annual Sen slope'].values[-1]
+                                    confidence_statement = temp_scatter_trend_year['confidence of improving trend'].values[-1]
+                                    analysis_note = temp_scatter_trend_year['analysis note'].values[-1]
+                                    if 'warning' in analysis_note.lower():
+                                        st.warning(f"{analysis_note}")
+                                    
+                                    data_list = [
+                                        median_value - sen_slope*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope*(user_trend_period/2),
+                                    ]
+
+                                    data_list_lci = [
+                                        median_value - sen_slope_lci*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope_lci*(user_trend_period/2),
+                                    ]
+
+                                    data_list_uci = [
+                                        median_value - sen_slope_uci*(user_trend_period/2),
+                                        median_value,
+                                        median_value + sen_slope_uci*(user_trend_period/2),
+                                    ]
+                                    
+                            else:
+                                st.write('No trend data at this site for this parameter')   
+                                st.session_state['include_trend_scatter'] = False 
+                        else:
+                            st.write('No trend data at this site')   
+                            st.session_state['include_trend_scatter'] = False     
+
+                        load_log_checkbox_trend() 
+                        #plot scatterplot here
+                        st.plotly_chart(time_series_scatter_plot(temp_scatter_data, user_scatter_parameter, temp_scatter_data['Unit'].values[-1],user_trend_period,trend_text = confidence_statement, data_column = 'Value', date_column = 'date time',topic='Contact_Recreation', sitename = st.session_state['current_site'], markersymbol = 'triangle-up',censored_markersymbol = 'hexagon2', marker_colour = '#86dcd5',censored_marker_colour = '#fa6e75', plot_trend=st.session_state['include_trend_scatter'], 
+                        trend_dates = date_list, trend_data = data_list, trend_lci = data_list_lci, trend_uci = data_list_uci),
+                                        use_container_width = True) 
+                else:  st.write(f"|--NO TREND DATA FOUND FOR SITE {st.session_state['site_user_choice']}--|")                      
+
+
+        # show data
+        if (st.session_state['current_site'] == st.session_state['site_user_choice']) & (st.session_state['site_trend_data'] is not None) & (st.session_state['data_table_mode']):
+            st.write('---') 
+            st.subheader(f'Data table: {st.session_state["current_site"]}')
+            st.dataframe(st.session_state['site_trend_data'],
+                        hide_index=True)                                    `,
 
 },
   },
@@ -779,5 +2586,5 @@ def scatter_plot_2_sites(data0,data1,
 
     </script>
   </body>
-  <!-- Generated from stlite sharing (https://edit.share.stlite.net/), and the source version is 82a4b24dc72ad76886dde43e3fbe47e24fb0eebe  # 82a4b24dc72ad76886dde43e3fbe47e24fb0eebe is available on GitHub Actions: https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables -->
+  <!-- Generated from stlite sharing (https://edit.share.stlite.net/), and the source version is 1739c1cebb469a20e979906ce264f90254d154ba -->
 </html>
