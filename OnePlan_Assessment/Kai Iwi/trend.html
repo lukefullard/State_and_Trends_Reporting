@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kai Iwi -- Trend</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .dropdown-container {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+        }
+        iframe {
+            width: 80%;
+            height: 90vh;
+            margin-top: 20px;
+        }
+        .dynamic-title {
+            font-size: 25px;
+            font-weight: bold;
+            margin-left: 20px;
+        }
+        select {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px;
+            width: 300px; /* Adjust the width as needed */
+            text-align: center;
+            text-align-last: center; /* For modern browsers */
+        }
+    </style>
+</head>
+<body>
+    <div class="dropdown-container">
+        <select id="pageSelector" onchange="loadPage()">
+            <option value="Ammoniacal Nitrogen_trend.html">Ammoniacal Nitrogen</option>
+            <option value="Chlorophyll A_trend.html">Chlorophyll-a</option>
+            <option value="Dissolved Oxygen Saturation_trend.html">Dissolved Oxygen</option>
+            <option value="Dissolved Reactive Phosphorus_trend.html">Dissolved Reactive Phosphorus</option>
+            <option value="E. coli_trend.html">E. coli</option>
+            <option value="MCI_trend.html">MCI</option>
+            <option value="Periphyton Filaments_trend.html">Periphyton Filaments</option>
+            <option value="Periphyton Mats_trend.html">Periphyton Mats</option>
+            <option value="pH_trend.html">pH</option>
+            <option value="QMCI_trend.html">QMCI</option>
+            <option value="sCBOD5_trend.html">sCBOD5</option>
+            <option value="Soluble Inorganic Nitrogen_trend.html">Soluble Inorganic Nitrogen</option>
+            <option value="Temperature_trend.html">Temperature</option>
+            <option value="Total Nitrogen_trend.html">Total Nitrogen</option>
+            <option value="Total Phosphorus_trend.html">Total Phosphorus</option>
+            <option value="Visual Clarity_trend.html">Visual Clarity</option>
+            <option value="Volatile Matter_trend.html">Volatile Matter</option>
+        </select>
+        <div class="dynamic-title" id="dynamicTitle">Kai Iwi -- Trend<br>Ammoniacal Nitrogen</div>
+    </div>
+    <iframe id="contentFrame" src="maps/Ammoniacal Nitrogen_trend.html"></iframe>
+
+    <script>
+        function loadPage() {
+            var selector = document.getElementById("pageSelector");
+            var iframe = document.getElementById("contentFrame");
+            var dynamicTitle = document.getElementById("dynamicTitle");
+            iframe.src = "maps/" + selector.value;
+            dynamicTitle.innerHTML = "Kai Iwi -- Trend<br>" + selector.options[selector.selectedIndex].text;
+        }
+
+        // Set the initial title
+        document.addEventListener("DOMContentLoaded", function() {
+            var selector = document.getElementById("pageSelector");
+            var dynamicTitle = document.getElementById("dynamicTitle");
+            dynamicTitle.innerHTML = "Kai Iwi -- Trend<br>" + selector.options[selector.selectedIndex].text;
+        });
+    </script>
+</body>
+</html>

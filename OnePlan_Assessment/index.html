@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State and Trends</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .logo {
+            width: 12.5%;
+        }
+        .dropdown-container {
+            display: inline-block;
+            margin: 0 20px;
+        }
+        select {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 5px;
+        }
+        iframe {
+            width: 95%;
+            height: 80vh;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+    <script>
+        function loadHTML() {
+            var subfolder = document.getElementById("subfolder").value;
+            var fileType = document.getElementById("fileType").value;
+            var filePath = subfolder + "/" + fileType + ".html";
+            document.getElementById("contentFrame").src = filePath;
+        }
+
+        window.onload = function() {
+            loadHTML();
+        }
+    </script>
+	
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script>
+var sediment_HTML = "<p>This webpage displays maps of results from a state and trends assessment performed for Horizons Regional Council by LWP Limited. The assessment covers data up until July 2022, and state was assessed as a pass or fail grade against water quality criteria in the the <a href='https://www.horizons.govt.nz/publications-feedback/one-plan'>One Plan</a>.</p> <br>"
+sediment_HTML += "<p>Using the dropdown selectors at the top of the page, you can choose which Freshwater Management Unit (FMU) to view, and choose whether to view state or trend results. In the map that pops up, there is another dropdown that allows you to select the water quality variable of interest.</p> <br>"
+sediment_HTML += "<p>In the state assessment, as shown in the circles below, there are four possible outcomes: A green circle is a pass, red a failure. An orange circle with a green outline is an indicative-only pass, but there is not enough data for a confident assessment. Similarly, and orange circle with a red outline is an indicative-only failure.</p>"
+sediment_HTML += '<table style="margin-left:auto; margin-right:auto;" border="0.5" width=60% height = 50px>' +
+  '<tr>' +
+    '<td><div class="circle green"></div></td>' +
+    '<td><div class="circle red"></div></td>' +
+    '<td><div class="circle grey_green"></div></td>' +
+	'<td><div class="circle grey_red"></div></td>' +
+  '</tr>' +
+'</table>';
+sediment_HTML += "<p>Note, the maps are generally interactive. You can hover over the points for the site name, and click for additional information.</p>"
+window.onload = function(){swal({
+  title: "One Plan - State and Trends assessment",
+  content: {
+    element: "div",
+    attributes: {
+      innerHTML: sediment_HTML
+    }
+  }
+});}
+</script>
+
+<style>
+.circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.green {
+    background-color: #00c04b;
+	border: 2px solid black;
+}
+.red {
+    background-color: #ff6767;
+	border: 2px solid black;
+}
+.grey_red {
+    background-color: #Fed8b1;
+    border: 2px solid #ff6767;
+}
+.grey_green {
+    background-color: #Fed8b1;
+    border: 2px solid #00c04b;
+}
+</style>
+    
+</head>
+<body>
+    <div class="header">
+        <img src="assets/horizons-logo-stacked.png" alt="Logo" class="logo">
+        <div>
+            <div class="dropdown-container">
+                <label for="subfolder">Choose a FMU:</label>
+                <select id="subfolder" onchange="loadHTML()">
+                    <option value="Kai Iwi">Kai Iwi</option>
+                    <option value="Manawatū">Manawatū</option>
+                    <option value="Puketoi ki Tai">Puketoi ki Tai</option>
+                    <option value="Rangitīkei-Turakina">Rangitīkei-Turakina</option>
+                    <option value="Waiopehu">Waiopehu</option>
+                    <option value="Whangaehu">Whangaehu</option>
+                    <option value="Whanganui">Whanganui</option>
+                </select>
+            </div>
+            <div class="dropdown-container">
+                <label for="fileType">Choose state or trend results:</label>
+                <select id="fileType" onchange="loadHTML()">
+                    <option value="state">state</option>
+                    <option value="trend">trend</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <iframe id="contentFrame" src="Kai Iwi/state.html"></iframe>
+</body>
+</html>
