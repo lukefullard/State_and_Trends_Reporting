@@ -69,14 +69,42 @@
             var iframe = document.getElementById("contentFrame");
             var dynamicTitle = document.getElementById("dynamicTitle");
             iframe.src = "maps/" + selector.value;
-            dynamicTitle.innerHTML = "Manawatū -- Trend<br>" + selector.options[selector.selectedIndex].text;
+
+            var selectedText = selector.options[selector.selectedIndex].text;
+            if (selectedText === "E. coli") {
+                selectedText = 'E. <span style="font-style: italic;">coli</span>';
+            } else if (selectedText === "Chlorophyll-a") {
+                selectedText = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
+
+            dynamicTitle.innerHTML = "Manawatū -- Trend<br>" + selectedText;
         }
 
         // Set the initial title
         document.addEventListener("DOMContentLoaded", function() {
             var selector = document.getElementById("pageSelector");
             var dynamicTitle = document.getElementById("dynamicTitle");
-            dynamicTitle.innerHTML = "Manawatū -- Trend<br>" + selector.options[selector.selectedIndex].text;
+
+            var selectedText = selector.options[selector.selectedIndex].text;
+            if (selectedText === "E. coli") {
+                selectedText = 'E. <span style="font-style: italic;">coli</span>';
+            } else if (selectedText === "Chlorophyll-a") {
+                selectedText = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
+
+            dynamicTitle.innerHTML = "Manawatū -- Trend<br>" + selectedText;
+
+            // Apply italic style to "coli" part in dropdown
+            var coliOption = selector.querySelector('option[value="E. coli_trend.html"]');
+            if (coliOption) {
+                coliOption.innerHTML = 'E. <span style="font-style: italic;">coli</span>';
+            }
+
+            // Apply italic style to "a" in "Chlorophyll-a" in dropdown
+            var chlorophyllOption = selector.querySelector('option[value="Chlorophyll A_trend.html"]');
+            if (chlorophyllOption) {
+                chlorophyllOption.innerHTML = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
         });
     </script>
 </body>

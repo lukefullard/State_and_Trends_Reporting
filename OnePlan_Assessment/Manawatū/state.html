@@ -51,7 +51,7 @@
             <option value="E. coli.html">E. coli</option>
             <option value="Enterococci.html">Enterococci</option>
             <option value="Faecal Coliforms.html">Faecal Coliforms</option>
-            <option value="Invertebrates.html">Invertebrates</option>
+            <option value="Invertebrates.html">Macroinvertebrates</option>
             <option value="Particulate Organic Matter (POM).html">Particulate Organic Matter (POM)</option>
             <option value="Periphyton.html">Periphyton</option>
             <option value="pH.html">pH</option>
@@ -80,7 +80,15 @@
             var page = pageSelector.value.replace(".html", "");
             var location = locationSelector.value;
             iframe.src = "maps/" + page + "_" + location + ".html";
-            dynamicTitle.innerHTML = "Manawatū -- State<br>" + pageSelector.options[pageSelector.selectedIndex].text + " (" + location + ")";
+
+            var selectedText = pageSelector.options[pageSelector.selectedIndex].text;
+            if (selectedText === "E. coli") {
+                selectedText = 'E. <span style="font-style: italic;">coli</span>';
+            } else if (selectedText === "Chlorophyll-a") {
+                selectedText = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
+
+            dynamicTitle.innerHTML = "Manawatū -- State<br>" + selectedText + " (" + location + " site)";
         }
 
         // Set the initial title
@@ -88,7 +96,27 @@
             var pageSelector = document.getElementById("pageSelector");
             var locationSelector = document.getElementById("locationSelector");
             var dynamicTitle = document.getElementById("dynamicTitle");
-            dynamicTitle.innerHTML = "Manawatū -- State<br>" + pageSelector.options[pageSelector.selectedIndex].text + " (" + locationSelector.value + ")";
+
+            var selectedText = pageSelector.options[pageSelector.selectedIndex].text;
+            if (selectedText === "E. coli") {
+                selectedText = 'E. <span style="font-style: italic;">coli</span>';
+            } else if (selectedText === "Chlorophyll-a") {
+                selectedText = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
+
+            dynamicTitle.innerHTML = "Manawatū -- State<br>" + selectedText + " (" + locationSelector.value + " site)";
+
+            // Apply italic style to "coli" part in dropdown
+            var coliOption = pageSelector.querySelector('option[value="E. coli.html"]');
+            if (coliOption) {
+                coliOption.innerHTML = 'E. <span style="font-style: italic;">coli</span>';
+            }
+
+            // Apply italic style to "a" in "Chlorophyll-a" in dropdown
+            var chlorophyllOption = pageSelector.querySelector('option[value="Chlorophyll-a.html"]');
+            if (chlorophyllOption) {
+                chlorophyllOption.innerHTML = 'Chlorophyll-<span style="font-style: italic;">a</span>';
+            }
         });
     </script>
 </body>
