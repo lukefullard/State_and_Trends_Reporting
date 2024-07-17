@@ -30,6 +30,7 @@
             width: 300px;
             text-align: center;
             text-align-last: center; /* For modern browsers */
+            margin-left: 10px;
         }
         iframe {
             width: 80%;
@@ -40,7 +41,7 @@
 </head>
 <body>
     <div class="dropdown-container">
-        <div class="dynamic-title" id="dynamicTitle">Whanganui -- State<br>Ammoniacal Nitrogen</div>
+        <div class="dynamic-title" id="dynamicTitle">Whanganui -- State<br>Ammoniacal Nitrogen (River site)</div>
         <select id="pageSelector" onchange="loadPage()">
             <option value="Ammoniacal Nitrogen.html">Ammoniacal Nitrogen</option>
             <option value="Chlorophyll-a.html">Chlorophyll-a</option>
@@ -60,23 +61,34 @@
             <option value="Total Nitrogen.html">Total Nitrogen</option>
             <option value="Total Phosphorus.html">Total Phosphorus</option>
         </select>
+        <select id="locationSelector" onchange="loadPage()">
+            <option value="River">River</option>
+            <option value="Discharge">Discharge</option>
+            <option value="Lake">Lake</option>
+            <option value="Estuary">Estuary</option>
+            <option value="Beach">Beach</option>
+        </select>
     </div>
-    <iframe id="contentFrame" src="maps/Ammoniacal Nitrogen.html"></iframe>
+    <iframe id="contentFrame" src="maps/Ammoniacal Nitrogen_River.html"></iframe>
 
     <script>
         function loadPage() {
-            var selector = document.getElementById("pageSelector");
+            var pageSelector = document.getElementById("pageSelector");
+            var locationSelector = document.getElementById("locationSelector");
             var iframe = document.getElementById("contentFrame");
             var dynamicTitle = document.getElementById("dynamicTitle");
-            iframe.src = "maps/" + selector.value;
-            dynamicTitle.innerHTML = "Whanganui -- State<br>" + selector.options[selector.selectedIndex].text;
+            var page = pageSelector.value.replace(".html", "");
+            var location = locationSelector.value;
+            iframe.src = "maps/" + page + "_" + location + ".html";
+            dynamicTitle.innerHTML = "Whanganui -- State<br>" + pageSelector.options[pageSelector.selectedIndex].text + " (" + location + ")";
         }
 
         // Set the initial title
         document.addEventListener("DOMContentLoaded", function() {
-            var selector = document.getElementById("pageSelector");
+            var pageSelector = document.getElementById("pageSelector");
+            var locationSelector = document.getElementById("locationSelector");
             var dynamicTitle = document.getElementById("dynamicTitle");
-            dynamicTitle.innerHTML = "Whanganui -- State<br>" + selector.options[selector.selectedIndex].text;
+            dynamicTitle.innerHTML = "Whanganui -- State<br>" + pageSelector.options[pageSelector.selectedIndex].text + " (" + locationSelector.value + ")";
         });
     </script>
 </body>
