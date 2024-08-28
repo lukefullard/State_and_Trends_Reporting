@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML File Viewer</title>
+    <title>SCAMP - Baseline nutrient contributions</title>
     <script>
         function updateIframe() {
             var type = document.getElementById("type").value;
@@ -15,13 +15,13 @@
 </head>
 <body onload="updateIframe()">
     <h1>HTML File Viewer</h1>
-    <label for="type">Choose a type:</label>
+    <label for="type">Please choose a nutrient:</label>
     <select id="type" onchange="updateIframe()">
         <option value="TN">TN</option>
         <option value="TP">TP</option>
     </select>
     <br><br>
-    <label for="location">Choose a location:</label>
+    <label for="location">Please choose an FMU:</label>
     <select id="location" onchange="updateIframe()">
         <option value="Manawatu">Manawatu</option>
         <option value="Rangitikei_Turakina">Rangitikei_Turakina</option>
