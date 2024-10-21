@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land use load contributions</title>
+    <script>
+        function updateIframe() {
+            var type = document.getElementById("type").value;
+            var location = document.getElementById("location").value;
+            var iframe = document.getElementById("viewer");
+            iframe.src = type + "_" + location + ".html";
+        }
+    </script>
+</head>
+<body onload="updateIframe()">
+    <h1>Land use load contributions</h1>
+    <label for="type">Choose a type:</label>
+    <select id="type" onchange="updateIframe()">
+        <option value="TN">TN</option>
+        <option value="TP">TP</option>
+    </select>
+    <br><br>
+    <label for="location">Choose a location:</label>
+    <select id="location" onchange="updateIframe()">
+        <option value="Manawatu">Manawatu</option>
+        <option value="Rangitikei_Turakina">Rangitikei_Turakina</option>
+        <option value="Waiopehu">Waiopehu</option>
+        <option value="Whanganui">Whanganui</option>
+        <option value="Whangaehu">Whangaehu</option>
+		<option value="Whangaehu">Kai_Iwi</option>
+		<option value="Whangaehu">Puketoi_ki_Tai</option>
+    </select>
+    <br><br>
+    <iframe id="viewer" src="TN_Manawatu.html" style="width: 100%; height: 80vh; border: none;"></iframe>
+</body>
+</html>
