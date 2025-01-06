@@ -11,17 +11,9 @@
     }
     textarea {
       width: 100%;
-      height: 300px;
+      height: 400px;
       font-family: monospace;
       font-size: 14px;
-    }
-    input[type="text"] {
-      width: 80%;
-      padding: 10px;
-      margin-right: 10px;
-    }
-    button {
-      padding: 10px 20px;
     }
     .error {
       color: red;
@@ -30,11 +22,7 @@
 </head>
 <body>
   <h1>API JSON Viewer</h1>
-  <p>Enter the API URL to fetch and display the JSON data:</p>
-  <form id="apiForm">
-    <input type="text" id="apiUrl" placeholder="Enter API URL" required>
-    <button type="submit">Fetch JSON</button>
-  </form>
+  <p id="apiInfo">Loading...</p>
   <p id="errorMessage" class="error"></p>
   <textarea id="jsonOutput" readonly></textarea>
 
@@ -45,41 +33,39 @@
       return params.get(name);
     }
 
-    // Populate input box if APIurl is in the query string
-    const apiUrlParam = getQueryParameter('APIurl');
-    if (apiUrlParam) {
-      document.getElementById('apiUrl').value = apiUrlParam;
-      fetchJson(apiUrlParam); // Fetch data on page load
-    }
-
-    // Fetch JSON data from API
+    // Fetch JSON data from the API
     async function fetchJson(apiUrl) {
       const jsonOutput = document.getElementById('jsonOutput');
       const errorMessage = document.getElementById('errorMessage');
+      const apiInfo = document.getElementById('apiInfo');
 
       // Clear previous output and errors
       jsonOutput.value = '';
       errorMessage.textContent = '';
 
       try {
+        apiInfo.textContent = `Fetching data from: ${apiUrl}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
+        apiInfo.textContent = `Successfully fetched data from: ${apiUrl}`;
         jsonOutput.value = JSON.stringify(data, null, 2); // Pretty-print JSON
       } catch (error) {
+        apiInfo.textContent = 'Failed to fetch data.';
         errorMessage.textContent = error.message;
       }
     }
 
-    // Form submission handler
-    document.getElementById('apiForm').addEventListener('submit', function(event) {
-      event.preventDefault(); // Prevent form submission
-      const apiUrl = document.getElementById('apiUrl').value;
+    // Get API URL from the query parameter and fetch data automatically
+    const apiUrl = getQueryParameter('APIurl');
+    if (apiUrl) {
       fetchJson(apiUrl);
-    });
+    } else {
+      document.getElementById('apiInfo').textContent = 'No API URL provided in the query parameters.';
+    }
   </script>
 </body>
 </html>
