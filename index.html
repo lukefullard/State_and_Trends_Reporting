@@ -10,14 +10,14 @@
     <title>Home</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.48.0/build/stlite.css"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.77.0/build/style.css"
     />
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.48.0/build/stlite.js"></script>
-    <script>
-stlite.mount(
+    <script type="module">
+import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.77.0/build/stlite.js"
+mount(
   {
     requirements: ["unidecode", "openpyxl", "plotly"],
     entrypoint: "Home.py",
