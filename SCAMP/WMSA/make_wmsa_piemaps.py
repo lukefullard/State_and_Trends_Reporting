@@ -61,6 +61,7 @@ settings = {
     'lineweight'        :    0.1,
     'fmu_lineweight'    :    0.25,
     'simplify_tolerance':  0.0005,
+    'fmu_highlight_color': '#191919'
     
     }
 
@@ -362,6 +363,7 @@ for fmu_j in settings.get('zoom_levek_map').keys():
                                                       "color": settings.get('linecolor'), 
                                                       "weight": settings.get('fmu_lineweight'),
                                                       },
+                                                  highlight_function= lambda feat: {'fillColor': settings.get('fmu_highlight_color')},
                                                       control = False).add_to(m)
     for iter_k, row_k in sub_gdf.iterrows():
         hover_text = f'<b>{wmsz_nice_names.get(row_k[settings.get("wmsz_column")])}</b><br><b>{row_k[settings.get("wmsz_column")]}</b><br><br>'
@@ -370,6 +372,15 @@ for fmu_j in settings.get('zoom_levek_map').keys():
             except: print(f'no column named {col_k} found')
         
         marker = folium.Marker(location = (row_k['centroid'].y, row_k['centroid'].x))
+        
+        ####
+        png_link = f'./TN/{row_k[settings.get("wmsz_column")]}_TN.png'
+        if png_link:  # Check if the PNG link exists
+            # popup_content = folium.Popup(f'<img src="{png_link}" width="1200">', max_width=1200)
+            popup_content = folium.Popup(f'<img src="{png_link}" style="max-width: 75vw;">')
+            marker.add_child(popup_content)
+        #####
+        
         icon = folium.DivIcon(html=row_k['plots'],icon_anchor=(50, 50))
         marker.add_child(icon)
         # Add tooltip with hover text
@@ -446,6 +457,7 @@ for fmu_j in settings.get('zoom_levek_map').keys():
                                                       "color": settings.get('linecolor'), 
                                                       "weight": settings.get('fmu_lineweight'),
                                                       },
+                                                  highlight_function= lambda feat: {'fillColor': settings.get('fmu_highlight_color')},
                                                       control = False).add_to(m)
     for iter_k, row_k in sub_gdf.iterrows():
         hover_text = f'<b>{wmsz_nice_names.get(row_k[settings.get("wmsz_column")])}</b><br><b>{row_k[settings.get("wmsz_column")]}</b><br><br>'
@@ -454,6 +466,14 @@ for fmu_j in settings.get('zoom_levek_map').keys():
             except: print(f'no column named {col_k} found')
         
         marker = folium.Marker(location = (row_k['centroid'].y, row_k['centroid'].x))
+        ####
+        png_link = f'./TP/{row_k[settings.get("wmsz_column")]}_TP.png'
+        if png_link:  # Check if the PNG link exists
+            # popup_content = folium.Popup(f'<img src="{png_link}" width="1200">', max_width=1200)
+            popup_content = folium.Popup(f'<img src="{png_link}" style="max-width: 75vw;">')
+            marker.add_child(popup_content)
+        #####
+        
         icon = folium.DivIcon(html=row_k['plots'],icon_anchor=(50, 50))
         marker.add_child(icon)
         # Add tooltip with hover text
