@@ -10,7 +10,8 @@ import base64
 
 settings = {
     'data_file'         :  r'../data/20241017_BaselineforPiegraphs.xlsx',
-    'scenario_file'     :  r'../data/20241017_ScenariosforPiegraphs.xlsx',
+    # 'scenario_file'     :  r'../data/20241017_ScenariosforPiegraphs.xlsx',
+    'scenario_file'     :  r'../data/20250310_ScenariosforPiegraphs.xlsx',
     'TN_tab_name'       :  'TN',
     'TP_tab_name'       :  'TP',
     'scenario_1_tab'    :  {

@@ -7,3 +7,4 @@ scripts_and_settings/generate_state_data_file_local.py
 scripts_and_settings/generate_trend_data_file_local.py
 state_trend_mapping_FMU.py
 SCAMP/make_piemaps.py
+SCAMP/WMSA/TP/Thumbs.db
