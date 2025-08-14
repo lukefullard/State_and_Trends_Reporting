@@ -1140,10 +1140,7 @@ def state_attribute(attribute_list):
 def trend_attribute(attribute_list):
     attribute_user_choice = st.selectbox('Please choose a variable to view over time: ',['Please select one'] + [x for x in attribute_list])
     return attribute_user_choice      
-def choose_trend_parameters(measurements):
-    st.write("If you would like to adjust the measurements in the figures, deselect items below:")
-    chosen_measures = st.multiselect('Measures to be plotted:",measurements, default = measurements)	
-	return chosen_measures
+
 	
 ############################################
 ############################################
