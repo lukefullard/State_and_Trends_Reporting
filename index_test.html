@@ -1313,9 +1313,9 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
 			if len(st.session_state['filtered_trend_data']) > 0:
 				st.write('remove measures here')
 				measurements = sorted(list(plot_data['parameter name'].unique()))
-				#st.write(measurements)
 				chosen_measures = choose_trend_parameters(measurements)
-				plot_data = plot_data.loc[plot_data['parameter name']].reset_index(drop=True)
+				plot_data = plot_data.loc[plot_data['parameter name'].isin(chosen_measures)].reset_index(drop=True)
+
 
 
             with st.expander("Spatial trend summary (click to expand)"):
