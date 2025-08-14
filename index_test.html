@@ -1142,7 +1142,7 @@ def trend_attribute(attribute_list):
     return attribute_user_choice      
 def choose_trend_parameters(measurements):
     st.write("If you would like to adjust the measurements in the figures, deselect items below:")
-    chosen_measures = st.multiselect('Meausres to be plotted:",measurements, default = measurements)	
+    chosen_measures = st.multiselect('Measures to be plotted:",measurements, default = measurements)	
 	return chosen_measures
 	
 ############################################
@@ -1309,7 +1309,7 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
                     extra_title_info = '(SoE sites)'
             else:   plot_data = st.session_state['filtered_trend_data']   
 
-			st.write('remove measures here')
+			#st.write('remove measures here')
 			#if len(st.session_state['filtered_trend_data']) > 0:
 			#	st.write('remove measures here')
 				#measurements = sorted(list(plot_data['parameter name'].unique()))
