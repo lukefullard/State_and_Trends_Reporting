@@ -1307,7 +1307,8 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
                     plot_data = st.session_state['filtered_trend_data'].loc[st.session_state['filtered_trend_data']['site type'] == 'RepSite'].reset_index(drop=True)
                     st.write("Plotting river **SoE** sites")
                     extra_title_info = '(SoE sites)'
-            else:   plot_data = st.session_state['filtered_trend_data']   
+            else:   
+                plot_data = st.session_state['filtered_trend_data']   
 
 			
 			
