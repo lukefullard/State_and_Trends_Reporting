@@ -1319,11 +1319,11 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
                 #grade summary
                 user_trend_period = trend_period(sorted(list(plot_data['trend period'].unique())))
                 if user_trend_period != 'Please select one':
-                    st.write('remove measures here')
-                    st.write(sorted(list(plot_data["parameter name"].unique())))
+                    #st.write('remove measures here')
+                    #st.write(sorted(list(plot_data["parameter name"].unique())))
                     measurements = sorted(list(plot_data["parameter name"].unique()))
-				    #chosen_measures = choose_trend_parameters(measurements)
-				    #plot_data = plot_data.loc[plot_data['parameter name'].isin(chosen_measures)].reset_index(drop=True)
+                    chosen_measures = choose_trend_parameters(measurements)
+                    plot_data = plot_data.loc[plot_data['parameter name'].isin(chosen_measures)].reset_index(drop=True)
 					
                     sort_by_best_trend = st.checkbox('Sort trend variables from worst to best? (Otherwise, alphabetically)')
                     st.plotly_chart(plot_spatial_trend_summary(plot_data.loc[plot_data['trend period'] == user_trend_period].reset_index(drop=True),topic=user_topic,date_range = str(user_trend_period) + ' year trends',spatial_region = sub_spatial_user_choice,extra_title_info=extra_title_info,sort_by_best_trend=sort_by_best_trend),
