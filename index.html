@@ -1309,8 +1309,9 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
                     extra_title_info = '(SoE sites)'
             else:   plot_data = st.session_state['filtered_trend_data']   
 			
-			if len(st.session_state['filtered_trend_data']) > 0:
-				st.write('remove measures here')
+			st.write('remove measures here')
+			#if len(st.session_state['filtered_trend_data']) > 0:
+			#	st.write('remove measures here')
 				#measurements = sorted(list(plot_data['parameter name'].unique()))
 				#st.write(measurements)
 				#chosen_measures = choose_trend_parameters(measurements)
