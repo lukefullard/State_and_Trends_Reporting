@@ -1139,12 +1139,7 @@ def state_attribute(attribute_list):
     return attribute_user_choice 
 def trend_attribute(attribute_list):
     attribute_user_choice = st.selectbox('Please choose a variable to view over time: ',['Please select one'] + [x for x in attribute_list])
-    return attribute_user_choice      
-def choose_trend_parameters(measurements):
-st.write("If you would like to adjust the measurements in the figures, deselect items below:")
-    chosen_measures = st.multiselect('Meausres to be plotted:",measurements, default = measurements)	
-	return chosen_measures
-	
+    return attribute_user_choice         
 ############################################
 ############################################
 ############################################
@@ -1308,14 +1303,6 @@ if (user_topic in st.session_state['full_state_data'].keys()) & (sub_spatial_use
                     st.write("Plotting river **SoE** sites")
                     extra_title_info = '(SoE sites)'
             else:   plot_data = st.session_state['filtered_trend_data']   
-			
-			st.write('remove measures here')
-			#if len(st.session_state['filtered_trend_data']) > 0:
-			#	st.write('remove measures here')
-				#measurements = sorted(list(plot_data['parameter name'].unique()))
-				#st.write(measurements)
-				#chosen_measures = choose_trend_parameters(measurements)
-				#plot_data = plot_data.loc[plot_data['parameter name']].reset_index(drop=True)
 
 
             with st.expander("Spatial trend summary (click to expand)"):
